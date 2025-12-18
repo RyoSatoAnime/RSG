@@ -1,0 +1,3274 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Deep Command v1.0.0</title>
+<style>
+  :root{
+    color-scheme: dark;
+  }
+  html,body{ margin:0; background:#000; color:#fff; font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial, sans-serif; }
+  .page{ display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:12px 0 0 ;}
+  html.is-mobile-platform .page{
+    padding-top:4px;
+  }
+  canvas#game{
+    width:600px; height:auto;
+    image-rendering: pixelated;
+    background:#000; border:1px solid #fff;
+    display:block; touch-action:none; outline:none;
+  }
+
+
+  .linkBar{
+    width:600px;
+    max-width:100%;
+    margin:6px auto 4px !important;
+    text-align:center;
+    color:#fff;
+  }
+.linkBar .label{
+  font-family:"Arial Black", Arial, Helvetica, sans-serif;
+  font-weight:900;
+  font-size:16px;
+  line-height:1.1;
+  text-decoration:none;
+  color:#fff;
+  display:inline-block;
+  padding-bottom:9px;
+}
+
+html.is-mobile-platform .linkBar{
+  display:none;
+}
+
+  /* === HowTo overlay === */
+  #howtoOverlay .howto-panel{
+    position: fixed;
+    left: 50vw; top: 50vh;
+    transform: translate(-50%,-50%);
+  }
+  .howto-panel{
+    box-sizing:border-box;
+    width: auto;
+    margin: 0 auto;
+    background:rgba(0,0,0,0.55);
+    border:2px solid #fff; border-radius:12px;
+    padding:28px 22px 24px;
+    transform: none;
+  }
+  .howto-title{
+    margin: 0 0 10px;
+    font-family: "Arial Black", Impact, system-ui, sans-serif;
+    text-align:center;
+    line-height:1.05;
+    font-weight:900;
+  }
+
+  .howto-footer{
+    text-align:center;
+    margin-top:1.1em;
+      font-size:14px;
+    opacity:0.7;
+  }
+  
+  :root{ --deep-version: "v1.0.0"; }  /* バージョン表記をここで上書き */
+
+  #howtoOverlay .howto-panel{
+    position: relative;
+    overflow: visible;
+  }
+  #howtoOverlay .howto-panel::after{
+    content: var(--deep-version);
+    position: absolute;
+    right: 8px;
+    bottom: -18px;
+    display: block;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1;
+    opacity: .6;
+    pointer-events: none;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    z-index: 1;
+  }
+
+  .howto-title{ max-width: 28ch; margin: 0 auto 10px; line-height: 1.2; overflow-wrap: anywhere; }
+  .howto-title.en{ font-size:28px; }
+  .howto-title.ja{ font-size:26px; }
+
+  .howto-pre{
+    margin: 16px auto 0;
+    white-space: pre-wrap;
+    line-height:1.45;
+    font-family: system-ui, "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial, sans-serif;
+  }
+  .howto-actions{ display:grid; place-items:center; margin-top:20px; }
+  .howto-close{
+    padding:10px 22px; font-size:18px; border:2px solid #fff; border-radius:10px;
+    background:transparent; color:#fff; cursor:pointer;
+  }
+
+  /* PC（マウス/広め画面）*/
+  @media (pointer: fine) and (min-width:821px){
+    #howtoOverlay{ padding-top:55px; }
+    #howtoOverlay .frame{ grid-template-rows: auto 1fr 0; }
+    .howto-panel{ margin:0 auto; width:fit-content; max-width:86vw; transform:none; }
+    .howto-title{ font-size:44px; }
+    .howto-pre.en{
+      font-size:18px;
+      margin:0 0 1.5em;
+    }
+    .howto-pre.ja{
+      font-size:18px;
+      margin:0;
+    }
+  }
+
+  /* モバイル：スクロール無しを最優先で縮小 */
+  @media (pointer: coarse), (max-width: 820px){
+    .howto-panel{ width:min(89vw, 680px); padding:24px 18px 20px; }
+    .howto-title{ font-size:34px; }
+    .howto-pre.en{
+      font-size:17px;
+      margin:0 0 1.5em;
+    }
+    .howto-pre.ja{
+      font-size:17px;
+      margin:0;
+    }
+  }
+
+  #howtoOverlay .frame{
+    min-height:100%;
+    display:grid;
+    grid-template-rows: 1fr auto 1fr;
+    justify-items:center;
+  }
+  #howtoOverlay .spacer{ height: clamp(8px, 3vmin, 24px); }
+
+  #howtoOverlay{
+    display:none; position:fixed; inset:0; z-index:9999;
+    background: rgba(0,0,0,0.65);
+  }
+
+
+#controls{
+  width:600px;
+  max-width:100%;
+  margin:16px auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  white-space:nowrap;
+  font:14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  user-select:none;
+}
+
+  /* ===== Canvas wrap & mobile pad (Astrovader-style) ===== */
+  .stageWrap{
+    width:600px;
+    max-width:100%;
+    margin:6px auto 0;
+    display:flex;
+    justify-content:center;
+  }
+
+  canvas#game{
+    border:1px solid #fff;
+    display:block;
+    width:600px;
+    height:auto;
+    image-rendering:pixelated;
+    background:#000;
+    touch-action:none;
+    outline:none;
+  }
+
+  .topbar{
+    width:600px;
+    max-width:100%;
+    margin:6px auto 8px;
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .topbar .label{
+    font-family:"Arial Black", Arial, Helvetica, sans-serif;
+    font-weight:900;
+    font-size:18px;
+    line-height:1;
+    color:#fff;
+  }
+
+html.is-mobile-platform .topbar button{
+  flex:0 1 auto;
+}
+
+html.is-mobile-platform .topbar{
+  gap:8px;
+}
+
+html.is-mobile-platform .topbar .square-btn{
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 14px;
+}
+
+html.is-mobile-platform #btnTitle,
+html.is-mobile-platform #btnMute{
+  flex:0 0 56px;
+  aspect-ratio:1/1;
+}
+
+html.is-mobile-platform #btnHowto{
+  flex:1 1 auto;
+  white-space:nowrap;
+  text-align:center;
+  font-size:16px;
+}
+
+
+.square-btn{
+  min-width:64px;
+  padding:10px 16px;
+  background:transparent;
+  border:2px solid #fff;
+  border-radius:10px;
+  color:#fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+               "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  font-weight:800;
+  font-size:16px;
+  letter-spacing:0.03em;
+  cursor:pointer;
+}
+
+.pad{
+  width:600px;
+  max-width:100%;
+  margin:10px auto 0;
+  display:none;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 80px;
+  column-gap:10px;
+  row-gap:10px;
+}
+html.is-mobile-platform .pad{
+  display:grid;
+}
+
+  .pad .half{
+    height:80px;
+    border:2px solid #fff;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    background:transparent;
+    touch-action:manipulation;
+    user-select:none;
+  }
+  .pad .half:active,
+  .reflectBtn:active{
+    transform:translateY(1px);
+  }
+  
+  #btnPadMoveL  { grid-column:1; grid-row:1; }
+  #btnPadMoveR  { grid-column:2; grid-row:1; }
+  
+  #btnPadShootL { grid-column:3; grid-row:2; }
+  #btnPadShootR { grid-column:4; grid-row:2; }
+  
+#btnPadShootD{
+  grid-column:3 / 5;
+  grid-row:1;
+  justify-self:center;
+
+  width: calc((100% - 10px) / 2);
+}
+
+
+/* move用の ◀▶ アイコン */
+.arrow-move{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  height:100%;
+}
+
+.arrow-move svg{
+  width:40px;
+  height:40px;
+}
+
+.arrow{
+  width:44px;
+  height:44px;
+}
+.arrow svg{
+  width:100%;
+  height:100%;
+  stroke:#fff;
+  fill:none;
+  stroke-width:3;
+  transform-origin:50% 50%;
+}
+
+#btnPadShootL .arrow svg{
+  transform: rotate(45deg) translateX(-1px) translateY(4px);
+  transform-origin:50% 50%;
+}
+#btnPadShootD .arrow svg{
+  transform: translateY(3px);
+}
+#btnPadShootR .arrow svg{
+  transform: rotate(-45deg) translateX(1px) translateY(4px);
+  transform-origin:50% 50%;
+}
+
+
+  .reflectBtn{
+    height:88px;
+    border:2px solid #fff;
+    border-radius:14px;
+    background:#000;
+    display:grid;
+    place-items:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .reflectBtn canvas{
+    width:100%;
+    height:100%;
+    display:block;
+  }
+
+  canvas#game,
+  .square-btn,
+  .pad .half,
+  .reflectBtn{
+    touch-action:none;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  html.is-mobile-platform .topbar{
+    display:flex;
+  }
+  html.is-mobile-platform .pad{
+    display:grid;
+  }
+  html.is-mobile-platform #controls{
+    display:none;
+  }
+
+  #btnMute .iconMobileSpeaker .slash{
+    display:none;
+  }
+  #btnMute.muted .iconMobileSpeaker .slash{
+    display:block;
+  }
+  
+
+#controls #ctrlSpeaker .slash,
+#controls #ctrlNote .slash{
+  display:none;
+}
+
+/* ゲーム全体をまとめるコンテナ */
+.mobileScaleRoot{
+  width:600px;      /* デスクトップでは 600px 固定 */
+  max-width:100%;
+  margin:0 auto;
+}
+
+/* モバイル（iOS / Android）のときだけ、短辺ベースで小さくする */
+html.is-mobile-platform .mobileScaleRoot{
+  width: min(96vmin, 100%, 600px);
+}
+
+
+#audioIconSlot{
+  display:inline-block;
+  position:relative;
+  width:1.4em;   /* 固定幅 */
+  height:1.3em;  /* 固定高さ：どちらか大きい方に合わせる */
+  vertical-align:middle;
+}
+#audioIconSlot svg{
+  position:absolute;
+  inset:0;          /* 上下左右0にして中央の同じ位置に */
+  width:100%;
+  height:100%;
+}
+#ctrlSlash{
+  display:none;     /* JSで出す */
+}
+
+#ctrlNote{
+  transform: translateY(-2px);
+}
+
+html.is-mobile-platform .topbar,
+html.is-mobile-platform .stageWrap,
+html.is-mobile-platform .pad{
+  width:100%;
+}
+
+/* キャンバスは常に「コンテナ内で 100%」にしておく */
+html.is-mobile-platform canvas#game{
+  width:100%;
+  height:auto;
+}
+
+/* まず全部消しておいて… */
+.audio-icon-svg .icon-speaker,
+.audio-icon-svg .speaker-wave,
+.audio-icon-svg .icon-note,
+.audio-icon-svg .icon-slash{
+  display:none;
+}
+
+/* ===== モード0: 全ON（スピーカー＋波形のみ） ===== */
+html.audio-all .audio-icon-svg .icon-speaker{
+  display:inline;
+}
+html.audio-all .audio-icon-svg .speaker-wave{
+  display:inline;
+}
+
+/* ===== モード1: BGM OFF（音符＋スラッシュ） ===== */
+html.audio-bgmoff .audio-icon-svg .icon-note{
+  display:inline;
+}
+html.audio-bgmoff .audio-icon-svg .icon-slash{
+  display:inline;
+}
+
+/* ===== モード2: 全OFF（スピーカー＋スラッシュ） ===== */
+html.audio-mute .audio-icon-svg .icon-speaker{
+  display:inline;
+}
+html.audio-mute .audio-icon-svg .speaker-wave{
+  display:inline;
+}
+html.audio-mute .audio-icon-svg .icon-slash{
+  display:inline;
+}
+
+/* スピーカーと音符だけ 2px 右へ寄せる */
+.audio-icon-svg .icon-speaker{
+  transform: translateX(1px);
+}
+
+.audio-icon-svg .icon-note-wrap{
+  transform: translateX(0px) scaleX(1.25);
+  transform-origin:50% 50%;
+}
+
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="linkBar">
+      <a class="label" href="https://ryosatoanime.github.io/Astrovader/" target="_blank" rel="noopener noreferrer">
+        Ryo Sato Games
+      </a>
+    </div>
+
+    <div class="mobileScaleRoot">
+      <div class="topbar">
+        <button id="btnTitle" class="square-btn">Title</button>
+        <button id="btnHowto" class="square-btn">How To Play</button>
+<button id="btnMute" class="square-btn" aria-label="Mute / Audio">
+  <span class="iconMobileSpeaker" aria-hidden="true">
+    <svg class="audio-icon-svg" viewBox="0 0 24 24"
+         aria-hidden="true"
+         style="width:2.1em; height:2.1em; display:block;">
+      <!-- スピーカーアイコン -->
+      <g class="icon-speaker">
+        <polygon
+          points="4,9 8,9 12,6 12,18 8,15 4,15"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M14 9 Q17 12 14 15"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+        <path
+          d="M16 7 Q21 12 16 17"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </g>
+
+      <!-- ♫ アイコン（テキスト）-->
+      <g class="icon-note-wrap">
+        <text class="icon-note"
+          x="11" y="13"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          font-size="18"
+          font-weight="700"
+          fill="currentColor">
+          ♫
+        </text>
+      </g>
+
+      <!-- 共通スラッシュ -->
+      <line class="icon-slash"
+        x1="3"  y1="3"
+        x2="21" y2="21"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round" />
+    </svg>
+  </span>
+</button>
+      </div>
+        <div class="stageWrap">
+            <canvas id="game"
+                    width="600" height="600"
+                    aria-label="Deep Command game surface"></canvas>
+      </div>
+<div id="controls">
+  <span>
+    A D : Move | ← ↓ → : Fire | Space : Pause | H : HowToPlay | M :
+    <span id="audioIconSlot">
+      <!-- BGMだけONのときに出すやつ -->
+      <svg id="ctrlNote" viewBox="0 0 24 24" aria-hidden="true">
+        <text x="12" y="15" text-anchor="middle" dominant-baseline="middle"
+              font-size="19" font-weight="700" fill="currentColor"
+              transform="translate(12 13) scale(1.4 1) translate(-12 -13)">♫</text>
+      </svg>
+      <!-- 初期状態・ALL OFFで使うスピーカー -->
+      <svg id="ctrlSpeaker" viewBox="0 0 24 24" aria-hidden="true">
+        <polygon points="4,9 8,9 12,6 12,18 8,15 4,15"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></polygon>
+        <path d="M14 9 Q17 12 14 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+        <path d="M16 7 Q21 12 16 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+      <!-- 斜線は1本だけここに置く -->
+      <svg id="ctrlSlash" viewBox="0 0 24 24" aria-hidden="true">
+        <line x1="3" y1="3" x2="21" y2="21"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+      </svg>
+    </span>
+  </span>
+</div>  
+
+<div class="pad" aria-label="Move & Shoot pad">
+<!-- 1: move ← -->
+<button id="btnPadMoveL" class="half" aria-label="Move Left">
+  <span class="arrow arrow-move" aria-hidden="true">
+    <svg viewBox="0 0 24 24">
+      <polygon points="18,5 4,12 18,19"
+               fill="#fff" stroke="#fff" stroke-width="2"/>
+    </svg>
+  </span>
+</button>
+
+<!-- 2: move → -->
+<button id="btnPadMoveR" class="half" aria-label="Move Right">
+  <span class="arrow arrow-move" aria-hidden="true">
+    <svg viewBox="0 0 24 24">
+      <polygon points="6,5 20,12 6,19"
+               fill="#fff" stroke="#fff" stroke-width="2"/>
+    </svg>
+  </span>
+</button>
+
+  <!-- 3: shoot ↙（左下撃ち） -->
+  <button id="btnPadShootL" class="half" aria-label="Shoot Down-Left">
+    <span class="arrow" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <polyline points="4,9 12,17 20,9" />
+        <line x1="12" y1="1" x2="12" y2="17" />
+      </svg>
+    </span>
+  </button>
+
+  <!-- 4: shoot ↓ -->
+  <button id="btnPadShootD" class="half" aria-label="Shoot Down">
+    <span class="arrow" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <polyline points="4,9 12,17 20,9" />
+        <line x1="12" y1="1" x2="12" y2="17" />
+      </svg>
+    </span>
+  </button>
+
+  <!-- 5: shoot ↘（右下撃ち） -->
+  <button id="btnPadShootR" class="half" aria-label="Shoot Down-Right">
+    <span class="arrow" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <polyline points="4,9 12,17 20,9" />
+        <line x1="12" y1="1" x2="12" y2="17" />
+      </svg>
+    </span>
+  </button>
+</div>
+  </div>
+  <!-- HowTo Overlay -->
+  <div id="howtoOverlay" aria-hidden="true">
+    <section class="howto-panel" role="dialog" aria-modal="true" aria-labelledby="howtoTitleEN">
+      <h2 class="howto-title en" id="howtoTitleEN">Chase the chain.</h2>
+      <pre class="howto-pre en">Move: A / D (PC)   ◀ ▶ (mobile)
+Shoot: ← ↓ → (PC)   ↙ ↓ ↘(mobile)
+Bigger chains = more MULT & HP
+Misses drain HP
+Mine-miss penalty rises over time.
+Direct hits end the run.
+</pre>
+
+      <h2 class="howto-title ja">誘爆を狙え</h2>
+      <pre class="howto-pre ja">移動: A / D (PC)   ◀ ▶ (モバイル)
+射撃: ← ↓ → (PC)   ↙ ↓ ↘(モバイル)
+大きな連鎖ほど得点倍率上昇＋HP回復。
+取り逃しでHP減、被弾で即アウト。
+時間経過で機雷見逃しの代償が増大。
+</pre>
+
+      <div class="howto-footer">Click or Tap to close</div>
+    </section>
+  </div>
+<script src="sq_audio_core.js"></script>
+<script src="deepcommand_bgm_main.js"></script>
+<script>
+// deepcommand_bgm_player_min_v0.1e.js
+(function(){
+  "use strict";
+
+
+  function clamp(v, lo, hi){
+    v = +v;
+    if (!Number.isFinite(v)) return lo;
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+  }
+
+  function createDeepCommandBgmPlayer(tune, opts){
+    opts = opts || {};
+
+    if (typeof window.SQAudioCore !== "function") {
+      console.warn("[BGM] SQAudioCore not found. Did you load sq_audio_core_v0.7.js first?");
+      return {
+        unlock(){}, unlockOnFirstGesture(){},
+        start(){}, stop(){}, pause(){}, resume(){},
+        isPlaying(){ return false; },
+        setVolume(){}
+      };
+    }
+
+    // ---- Tune checks ----
+    if (!tune || typeof tune !== "object") {
+      console.warn("[BGM] Invalid tune object.");
+      return {
+        unlock(){}, unlockOnFirstGesture(){},
+        start(){}, stop(){}, pause(){}, resume(){},
+        isPlaying(){ return false; },
+        setVolume(){}
+      };
+    }
+
+    const STEPS_PER_PHRASE = (opts.stepsPerPhrase != null) ? Math.floor(opts.stepsPerPhrase) : 64;
+    const bpm = (typeof tune.bpm === "number" && tune.bpm > 0) ? tune.bpm : 120;
+    const stepDurSec = (60 / bpm) / 4; // 16th-note fixed (same as current DeepCommand)
+    const loopStartPhrase = (typeof tune.loopStartPhrase === "number" && tune.loopStartPhrase >= 1)
+      ? Math.floor(tune.loopStartPhrase) : 1;
+
+    // Track normalize [{id, track}]
+    const rawTracks = Array.isArray(tune.tracks) ? tune.tracks : [];
+    const tracks = [];
+    for (let i = 0; i < rawTracks.length; i++){
+      const it = rawTracks[i];
+      if (!it || typeof it !== "object") continue;
+      const id = (typeof it.id === "string" && it.id.trim()) ? it.id.trim() : ("track"+(tracks.length+1));
+      const trk = (it.track && typeof it.track === "object") ? it.track : null;
+      if (!trk) continue;
+      tracks.push({ id, track: trk });
+    }
+
+    // Total steps = max chain length * STEPS_PER_PHRASE
+    let maxChainLen = 0;
+    for (const t of tracks){
+      const chain = Array.isArray(t.track.chain) ? t.track.chain : [];
+      if (chain.length > maxChainLen) maxChainLen = chain.length;
+    }
+    const totalSteps = maxChainLen * STEPS_PER_PHRASE;
+    const loopStartStep = (totalSteps > 0)
+      ? clamp((loopStartPhrase - 1) * STEPS_PER_PHRASE, 0, totalSteps - 1)
+      : 0;
+
+    // ---- Core (BGM only) ----
+    const core = (opts.core && typeof opts.core === 'object') ? opts.core : new window.SQAudioCore({ masterGain: (opts.masterGain != null ? opts.masterGain : 0.75) });
+    // If a shared core is provided, we leave its masterGain as-is (game-level policy).
+
+    // ---- Scheduler state ----
+    let isRunning = false;
+    let isPaused = false;
+    let pendingStart = false;
+    let startToken = 0;
+
+    let stepIndex = 0;
+    let nextStepTime = 0;
+
+    let lookaheadMs = (opts.lookaheadMs != null) ? Math.floor(opts.lookaheadMs) : 25;
+    let scheduleAheadSec = (opts.scheduleAheadSec != null) ? +opts.scheduleAheadSec : 0.12;
+
+    let timerId = null;
+
+    // volume multiplies each tone's mix.master (like your current createSimpleTunePlayer)
+    let masterVolume = (opts.volume != null) ? clamp(opts.volume, 0, 1) : 0.7;
+
+    function ensureRunningTimer(){
+      if (timerId != null) return;
+      timerId = window.setInterval(schedulerTick, lookaheadMs);
+    }
+    function clearTimer(){
+      if (timerId == null) return;
+      window.clearInterval(timerId);
+      timerId = null;
+    }
+
+    function playStepAt(stepIdx, t0){
+      if (totalSteps <= 0) return;
+
+      const phraseIndexGlobal = Math.floor(stepIdx / STEPS_PER_PHRASE);
+      const localStep = stepIdx % STEPS_PER_PHRASE;
+
+      for (let i = 0; i < tracks.length; i++){
+        const t = tracks[i];
+        const trackObj = t.track || {};
+        const phrases = trackObj.phrases || {};
+        const chain = Array.isArray(trackObj.chain) ? trackObj.chain : [];
+        if (!chain.length) continue;
+
+        const localPhraseIndex = phraseIndexGlobal % chain.length;
+        const phraseId = chain[localPhraseIndex];
+        const phr = phrases[phraseId];
+
+        if (phraseId === "none" || !phr || !Array.isArray(phr.pattern)) continue;
+
+        const pattern = phr.pattern;
+        const tone = phr.tone || null;
+        if (!tone) continue;
+
+        if (localStep < 0 || localStep >= pattern.length) continue;
+        const noteVal = pattern[localStep];
+        if (typeof noteVal !== "number" || !Number.isFinite(noteVal)) continue;
+
+        const baseMix = (tone && tone.mix && typeof tone.mix === "object") ? tone.mix : null;
+        const baseMaster = (baseMix && Number.isFinite(baseMix.master)) ? baseMix.master : 1.0;
+        const toneToPlay = {
+          ...tone,
+          note: noteVal,
+          mix: { ...(baseMix || {}), master: baseMaster * masterVolume }
+        };
+
+        // NOTE: SQAudioCore.playTone signature in your DeepCommand is (toneJson, delaySec, trackId, forceMono?).
+        // Here, we use scheduled time by passing delaySec = (t0 - currentTime).
+        const now = core.currentTime;
+        const delaySec = Math.max(0, t0 - now);
+
+        const busKey = "bgm_" + t.id;
+        const trackId = busKey;
+        
+        // bus方式で鳴らす（CPU/GC負荷を激減）
+        if (typeof core.playToneBus === "function") {
+          const monoCutMs = (t.id === "tri") ? 200 : null; // 20msがまずおすすめ
+          core.playToneBus(toneToPlay, delaySec, busKey, trackId, monoCutMs);
+        } else {
+          // 念のためフォールバック（古いcoreならこっち）
+          core.playTone(toneToPlay, delaySec, trackId);
+        }
+
+      }
+    }
+
+    function schedulerTick(){
+      if (!isRunning || isPaused) return;
+      // If AudioContext is not running, do not schedule into a frozen timeline (iOS double-tap / pause-resume glitch).
+      const ac = core.audioContext;
+      if (!ac || ac.state !== 'running') return;
+      if (totalSteps <= 0) return;
+
+      const now = core.currentTime;
+
+      // Edge対策：スケジューラが大幅に遅れたら「追いかけ再生」を諦めて、今から再同期
+      if (nextStepTime !== 0 && nextStepTime < now - 0.25){
+        nextStepTime = now + 0.03;
+      }
+
+      // init nextStepTime on first tick after start/resume
+      if (nextStepTime === 0) nextStepTime = now + 0.03;
+
+      while (nextStepTime < now + scheduleAheadSec){
+        playStepAt(stepIndex, nextStepTime);
+
+        stepIndex++;
+        if (stepIndex >= totalSteps) stepIndex = loopStartStep;
+
+        nextStepTime += stepDurSec;
+      }
+    }
+
+    // ---- Hard kill: stop any currently sounding voices immediately ----
+    function killAllVoicesFast(){
+      try{
+        const ac = core.audioContext;
+        const now = ac.currentTime;
+        if (core._activeTracks && typeof core._activeTracks.forEach === 'function') {
+          core._activeTracks.forEach((old) => {
+            try{
+              if (old && old.gainNode && old.gainNode.gain) {
+                old.gainNode.gain.cancelScheduledValues(now);
+                old.gainNode.gain.setValueAtTime(old.gainNode.gain.value, now);
+                old.gainNode.gain.linearRampToValueAtTime(0, now + 0.015);
+              }
+              if (old && old.sourceNode && typeof old.sourceNode.stop === 'function') {
+                old.sourceNode.stop(now + 0.03);
+              }
+            }catch(_e){}
+          });
+          core._activeTracks.clear();
+        }
+      }catch(_e){}
+    }
+
+
+    // ---- Public API ----
+    function unlock(){
+      try{
+        const ac = core.audioContext;
+        if (ac && ac.state === 'suspended' && typeof ac.resume === 'function') {
+          return ac.resume();
+        }
+      }catch(_){ }
+      return Promise.resolve();
+    }
+
+
+    function unlockOnFirstGesture(){
+      const handler = () => {
+        unlock();
+        window.removeEventListener("pointerdown", handler, true);
+        window.removeEventListener("keydown", handler, true);
+        window.removeEventListener("touchstart", handler, true);
+      };
+      window.addEventListener("pointerdown", handler, true);
+      window.addEventListener("keydown", handler, true);
+      window.addEventListener("touchstart", handler, true);
+    }
+
+    function start(){
+      if (pendingStart || isRunning) return;
+      if (totalSteps <= 0) return;
+      pendingStart = true;
+      const token = ++startToken;
+
+      isPaused = false;
+      stepIndex = 0;
+      nextStepTime = 0;
+
+      unlock().then(()=>{
+        if (!pendingStart || token !== startToken) return;
+        pendingStart = false;
+        isRunning = true;
+        ensureRunningTimer();
+      }).catch(()=>{
+        // If resume is blocked (not in a gesture), keep it stopped and wait for next user gesture.
+        pendingStart = false;
+        isRunning = false;
+      });
+    }
+
+    function stop(){
+      // cancel any pending start/resume
+      pendingStart = false;
+      startToken++;
+
+      // stop scheduling AND silence immediately (no long-tail on gameover/title)
+      killAllVoicesFast();
+      isRunning = false;
+      isPaused = false;
+      stepIndex = 0;
+      nextStepTime = 0;
+      clearTimer();
+    }
+
+    function pause(){
+      if (pendingStart) { pendingStart = false; }
+      if (!isRunning) return;
+      // silence immediately (no long-tail while paused)
+      killAllVoicesFast();
+      isPaused = true;
+    }
+
+    function resume(){
+      if (pendingStart) return;
+      if (!isRunning) return;
+      if (!isPaused) return;
+
+      const token = ++startToken;
+      // Keep paused until the context is actually running again (prevents scheduling while suspended).
+      unlock().then(()=>{
+        if (token != startToken) return;
+        isPaused = false;
+        nextStepTime = 0;
+      }).catch(()=>{
+        // remain paused; next user gesture should unlock
+      });
+    }
+
+    function isPlaying(){
+      return (isRunning && !isPaused) || pendingStart;
+    }
+
+    function setVolume(v){
+      masterVolume = clamp(v, 0, 1);
+      // if volume is forced to 0 (mute), also kill current tails so it becomes truly silent
+      if (masterVolume === 0) {
+        killAllVoicesFast();
+      }
+    }
+
+    return {
+      unlock,
+      unlockOnFirstGesture,
+      start,
+      stop,
+      pause,
+      resume,
+      isPlaying,
+      setVolume,
+      // for debugging
+      _getCore(){ return core; }
+    };
+  }
+
+  window.createDeepCommandBgmPlayer = createDeepCommandBgmPlayer;
+})();
+
+</script>
+<script>
+
+(() => {
+  // === High Score storage (DeepCommand) ===
+  const HS_KEY="deepcommand_highscore", HM_KEY="deepcommand_highmult";
+  const loadNum=(k)=>{ try{ return parseInt(localStorage.getItem(k)||"0",10)||0; }catch{ return 0; } };
+  const saveNum=(k,v)=>{ try{ localStorage.setItem(k, String(v|0)); }catch{} };
+
+  let hudHighScore = 0;
+  let hudHighMult  = 0;
+
+  let highScore = loadNum(HS_KEY);
+  let highMult  = Math.max(1, loadNum(HM_KEY)||1);
+
+  hudHighScore = highScore;
+  hudHighMult  = highMult;
+
+  let savedHSThisRun = false;
+  let pendingHSPersist = false;
+  let runHighBroken = false;
+
+  const PS_KEY="deepcommand_prevscore", PM_KEY="deepcommand_prevmult";
+  let prevScore = loadNum(PS_KEY);
+  let prevMult  = Math.max(1, loadNum(PM_KEY)||1);
+  let savedPrevThisRun = false;
+  let gameOverShown = false;
+
+
+  function persistHSIfBetter(){
+    if (score > highScore || (score === highScore && mult > highMult)) {
+      highScore = score; highMult = mult;
+      saveNum(HS_KEY, highScore);
+      saveNum(HM_KEY, highMult);
+      runHighBroken = true;
+    }
+  }
+
+
+  // ===== Mobile platform detection (UAベース：iOS / Androidのみ) =====
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(navigator.userAgent);
+
+  // --- Debug: 強制 Mobile UI ON フラグ ---
+  // 例) ?mtest=1 や #mtest を付けてアクセスすると常にモバイルUI
+  const FORCE_MOBILE_UI =
+    /[?&]mtest=1\b/.test(location.search) ||
+    location.hash.includes("mtest");
+
+  const isMobilePlatform = FORCE_MOBILE_UI || isIOS || isAndroid;
+
+  if (isMobilePlatform) {
+    document.documentElement.classList.add("is-mobile-platform");
+  }
+
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d', { alpha:false });
+
+  const btnPadMoveL  = document.getElementById('btnPadMoveL');
+  const btnPadMoveR  = document.getElementById('btnPadMoveR');
+  const btnPadShootL = document.getElementById('btnPadShootL');
+  const btnPadShootD = document.getElementById('btnPadShootD');
+  const btnPadShootR = document.getElementById('btnPadShootR');
+  const btnTitle = document.getElementById('btnTitle');
+  const btnHowto = document.getElementById('btnHowto');
+
+  // === Audio mute states ===
+  let audioMode = 0;
+  applyAudioModeClass(audioMode);
+  let SFXmute = false;
+  let BGMmute = false;
+  
+  // controls icons
+  const ctrlNote    = document.getElementById('ctrlNote');
+  const ctrlSpeaker = document.getElementById('ctrlSpeaker');
+  const ctrlSlash   = document.getElementById('ctrlSlash');
+  const btnMute     = document.getElementById('btnMute');
+  
+  function applyAudioModeClass(mode){
+    const root = document.documentElement;
+    root.classList.remove('audio-all','audio-bgmoff','audio-mute');
+  
+    if (mode === 0){
+      root.classList.add('audio-all');
+    } else if (mode === 1){
+      root.classList.add('audio-bgmoff');
+    } else {
+      root.classList.add('audio-mute');
+      }
+}
+
+function updateTitleButtonLabel() {
+  const btn = document.getElementById("btnTitle");
+  if (!btn) return;
+
+  if (isMobilePlatform && state === "title") {
+    // モバイル ＋ タイトル画面 → 総合リンクモード
+    btn.textContent = "RSG";
+  } else {
+    // それ以外 → 通常の Title ボタン
+    btn.textContent = "Title";
+  }
+}
+
+
+function updateAudioIcons(){
+  ctrlNote.style.display    = 'none';
+  ctrlSpeaker.style.display = 'none';
+  ctrlSlash.style.display   = 'none';
+
+  if (audioMode === 0) {
+    // スピーカーだけ
+    ctrlSpeaker.style.display = 'block';
+  } else if (audioMode === 1) {
+    // ♫に斜線
+    ctrlNote.style.display  = 'block';
+    ctrlSlash.style.display = 'block';
+  } else {
+    // スピーカーに斜線
+    ctrlSpeaker.style.display = 'block';
+    ctrlSlash.style.display   = 'block';
+  }
+}
+
+
+  // === Web Audio base ===
+  let audioCtx = null;
+  let sfxGain = null;
+  let bgmGain = null;
+  let bgmSource = null;
+
+function ensureAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    sfxGain = audioCtx.createGain();
+    bgmGain = audioCtx.createGain();
+    sfxGain.connect(audioCtx.destination);
+    bgmGain.connect(audioCtx.destination);
+    sfxGain.gain.value = 1.0;
+    bgmGain.gain.value = 0.7;
+  }
+
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function updateBGMGainByMute() {
+  const muted = BGMmute;
+
+  // SQ TuneベースのBGMプレイヤー
+  if (bgmPlayer && typeof bgmPlayer.setVolume === "function") {
+    bgmPlayer.setVolume(muted ? 0.0 : 0.7);
+
+    // ★ミュート解除時に、ゲームが動いていてBGMが止まっていたら復帰させる
+    if (!muted &&
+        typeof bgmPlayer.isPlaying === "function" &&
+        typeof bgmPlayer.resume === "function" &&
+        !bgmPlayer.isPlaying() &&      // いま止まっている
+        state === 'running' &&         // ゲームは動いている
+        !paused &&                     // ポーズ中ではない
+        !gameOver) {                   // ゲームオーバーでもない
+      bgmPlayer.resume();
+    }
+  }
+}  
+  function applyAudioMode() {
+    if (audioMode === 0) {
+      SFXmute = false;
+      BGMmute = false;
+    } else if (audioMode === 1) {
+      SFXmute = false;
+      BGMmute = true;
+    } else {
+      SFXmute = true;
+      BGMmute = true;
+    }
+    updateBGMGainByMute();
+    updateAudioIcons();
+  }
+  applyAudioMode();
+
+  // ===== BGM Player using SQAudioCore + sqtune_v0.2 =====
+  var bgmPlayer = null;
+
+  function dcDeepClone(obj){
+    return obj ? JSON.parse(JSON.stringify(obj)) : obj;
+  }
+
+  /**
+   * SQAudioCore + sqtune_v0.2 用のシンプル BGM プレイヤー。
+   */
+function createSimpleTunePlayer(core, tune, opts){
+  opts = opts || {};
+  const STEPS_PER_PHRASE = opts.stepsPerPhrase || 64;
+
+  // コアとtuneの簡易チェック
+  if (!core || typeof core.playTone !== "function") {
+    console.warn("createSimpleTunePlayer: SQAudioCore インスタンスが不正です");
+    return {
+      start(){}, stop(){}, pause(){}, resume(){},
+      isPlaying(){ return false; },
+      setVolume(){}
+    };
+  }
+  if (!tune || typeof tune !== "object") {
+    console.warn("createSimpleTunePlayer: tune オブジェクトが不正です");
+    return {
+      start(){}, stop(){}, pause(){}, resume(){},
+      isPlaying(){ return false; },
+      setVolume(){}
+    };
+  }
+
+  // BPM & 1stepの長さ
+  const bpm = (typeof tune.bpm === "number" && tune.bpm > 0) ? tune.bpm : 120;
+  const beatMs = 60000 / bpm;
+  const stepDurationMs = beatMs / 4;  // 16分音符固定
+
+  // ループ開始フレーズ（1始まり）
+  let loopStartPhrase = 1;
+  if (typeof tune.loopStartPhrase === "number" && tune.loopStartPhrase >= 1) {
+    loopStartPhrase = Math.floor(tune.loopStartPhrase);
+  }
+
+  // トラック整形（{id, track} の配列に）
+  const rawTracks = Array.isArray(tune.tracks) ? tune.tracks : [];
+  const tracks = [];
+  for (let i = 0; i < rawTracks.length; i++) {
+    const item = rawTracks[i];
+    if (!item || typeof item !== "object") continue;
+    const idRaw = (item.id && typeof item.id === "string") ? item.id.trim() : ("track" + (tracks.length + 1));
+    const trk = item.track && typeof item.track === "object" ? item.track : null;
+    if (!trk) continue;
+    tracks.push({ id: idRaw, track: trk });
+  }
+
+  // 1周ぶんの総ステップ数（いちばんchainの長いトラックに合わせる）
+  let totalSteps = 0;
+  (function computeTotalStepsForTune(){
+    let maxChainLen = 0;
+    for (const t of tracks) {
+      const chain = Array.isArray(t.track && t.track.chain) ? t.track.chain : [];
+      if (chain.length > maxChainLen) {
+        maxChainLen = chain.length;
+      }
+    }
+    totalSteps = maxChainLen * STEPS_PER_PHRASE;
+    if (totalSteps <= 0) totalSteps = 0;
+  })();
+
+  // ループ開始ステップ
+  let loopStartStep = 0;
+  if (totalSteps > 0) {
+    loopStartStep = (loopStartPhrase - 1) * STEPS_PER_PHRASE;
+    if (loopStartStep < 0) loopStartStep = 0;
+    if (loopStartStep >= totalSteps) loopStartStep = 0;
+  }
+
+  // 内部状態
+  let currentStepIndex = 0;
+  let isRunning = false;
+  let timerId = null;
+  let masterVolume = (typeof opts.initialVolume === "number") ? opts.initialVolume : 1.0;
+
+  // 1stepぶんノートを鳴らす
+  function playCurrentStep(){
+    if (!isRunning) return;
+    if (currentStepIndex < 0 || currentStepIndex >= totalSteps) return;
+
+    const phraseIndexGlobal = Math.floor(currentStepIndex / STEPS_PER_PHRASE);
+    const localStep = currentStepIndex % STEPS_PER_PHRASE;
+
+    for (let i = 0; i < tracks.length; i++) {
+      const t = tracks[i];
+      const trackObj = t.track || {};
+      const phrases = trackObj.phrases || {};
+      const chain = Array.isArray(trackObj.chain) ? trackObj.chain : [];
+      if (!chain.length) continue;
+
+      const localPhraseIndex = phraseIndexGlobal % chain.length;
+      const phraseId = chain[localPhraseIndex];
+      const phr = phrases[phraseId];
+
+      // "none" や存在しないフレーズはスキップ
+      if (phraseId === "none" || !phr || !Array.isArray(phr.pattern)) continue;
+
+      const pattern = phr.pattern;
+      const tone = phr.tone || null;
+      if (!tone) continue;
+
+      if (localStep < 0 || localStep >= pattern.length) continue;
+      const noteVal = pattern[localStep];
+      if (typeof noteVal !== "number" || !Number.isFinite(noteVal)) continue;
+
+      // cloneして音量をmasterVolumeでスケーリング
+      const toneToPlay = dcDeepClone(tone) || {};
+      toneToPlay.note = noteVal;
+      toneToPlay.mix = toneToPlay.mix || {};
+      toneToPlay.mix.master = (toneToPlay.mix.master || 1.0) * masterVolume;
+
+      // trackId (t.id) を渡してモノフォニック制御させる
+      core.playTone(toneToPlay, 0, t.id);
+    }
+  }
+
+  function clearTimer(){
+    if (timerId !== null) {
+      window.clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  function tick(){
+    if (!isRunning) return;
+    if (totalSteps <= 0) return;
+
+    playCurrentStep();
+
+    currentStepIndex++;
+    if (currentStepIndex >= totalSteps) {
+      currentStepIndex = loopStartStep;  // ループ
+    }
+  }
+
+  function start(){
+    if (isRunning) return;
+    if (totalSteps <= 0) return;
+
+    isRunning = true;
+    currentStepIndex = 0;
+
+    // 1発目はすぐ鳴らしてから、以降は等間隔
+    playCurrentStep();
+    currentStepIndex++;
+    if (currentStepIndex >= totalSteps) {
+      currentStepIndex = loopStartStep;
+    }
+
+    clearTimer();
+    timerId = window.setInterval(tick, stepDurationMs);
+  }
+
+  function stop(){
+    isRunning = false;
+    clearTimer();
+    currentStepIndex = 0;
+  }
+
+  function pause(){
+    if (!isRunning) return;
+    isRunning = false;
+    clearTimer();
+  }
+
+  function resume(){
+    if (isRunning) return;
+    if (totalSteps <= 0) return;
+
+    isRunning = true;
+    clearTimer();
+    timerId = window.setInterval(tick, stepDurationMs);
+  }
+
+  function isPlaying(){
+    return isRunning;
+  }
+
+  function setVolume(v){
+    if (typeof v !== "number" || !Number.isFinite(v)) return;
+    if (v < 0) v = 0;
+    masterVolume = v;
+  }
+
+  return {
+    start,
+    stop,
+    pause,
+    resume,
+    isPlaying,
+    setVolume
+  };
+}
+
+
+
+function initBgmPlayer(){
+  if (bgmPlayer) return;
+
+  bgmPlayer = createDeepCommandBgmPlayer(DEEP_TUNE_MAIN, {
+    masterGain: 0.75,
+    core: ensureSqCore(),
+    volume: 0.7,
+    stepsPerPhrase: 64,
+    lookaheadMs: 25,
+    scheduleAheadSec: 0.12,
+  });
+
+  bgmPlayer.unlockOnFirstGesture();
+  updateBGMGainByMute();
+}
+
+
+
+// ===== SQAudioCore: New SFX tones (from SQ Tone Editor) =====
+let sqCore = null;
+function ensureSqCore() {
+  if (!sqCore && typeof SQAudioCore === "function") {
+    sqCore = new SQAudioCore({ masterGain: 0.8 }); // 全体のSFX基準
+  }
+  return sqCore;
+}
+
+const SQ_TONE_SFX = {
+  fire: {
+    note: 60,
+    len_ms: 400,
+    env_ms: { attack: 2, decay: 240, sustain: 0, release: 240 },
+    pitch_sweep: { start_semi: 0, end_semi: -48, time_ms: 480 },
+    mix: { master: 0.35 },
+    filter: { lpf_hz: 12000, hpf_hz: 80, bit_depth: 8, sr_crush_hz: 44100 },
+    osc: { wave: "square", duty: 0.125, detune_cents: 0, wave32: null, noise_rate_hz: 600 }
+  },
+  mine: {
+    note: 47,
+    len_ms: 500,
+    env_ms: { attack: 2, decay: 160, sustain: 0, release: 160 },
+    pitch_sweep: { start_semi: 0, end_semi: -40, time_ms: 320 },
+    mix: { master: 0.3 },
+    filter: { lpf_hz: 3000, hpf_hz: 40, bit_depth: 12, sr_crush_hz: 44100 },
+    osc: { wave: "square", duty: 0.5, detune_cents: 0, wave32: null, noise_rate_hz: 600 }
+  },
+  spawn: { // 敵出現
+    note: 47,
+    len_ms: 210,
+    env_ms: { attack: 4, decay: 100, sustain: 0, release: 100 },
+    pitch_sweep: { start_semi: 0, end_semi: 12, time_ms: 200 },
+    mix: { master: 0.3 },
+    filter: { lpf_hz: 10000, hpf_hz: 100, bit_depth: 10, sr_crush_hz: 44100 },
+    osc: { wave: "triangle", duty: 0.5, detune_cents: 0, wave32: null, noise_rate_hz: 20 }
+  },
+  miss: {
+    note: 51,
+    len_ms: 1000,
+    env_ms: { attack: 2, decay: 800, sustain: 0, release: 200 },
+    pitch_sweep: { start_semi: 0, end_semi: -40, time_ms: 400 },
+    mix: { master: 0.28 },
+    filter: { lpf_hz: 10000, hpf_hz: 80, bit_depth: 12, sr_crush_hz: 44100 },
+    osc: { wave: "square", duty: 0.125, detune_cents: 0, wave32: null, noise_rate_hz: 600 }
+  },
+  surfaceExp: {
+    note: 48,
+    len_ms: 1600,
+    env_ms: { attack: 2, decay: 1400, sustain: 0, release: 200 },
+    pitch_sweep: { start_semi: 0, end_semi: 0, time_ms: 0 },
+    mix: { master: 0.6 },
+    filter: { lpf_hz: 8000, hpf_hz: 450, bit_depth: 10, sr_crush_hz: 44100 },
+    osc: { wave: "noise", duty: 0.25, detune_cents: 0, wave32: null, noise_rate_hz: 1000 }
+  },
+  exp: {
+    note: 48,
+    len_ms: 1200,
+    env_ms: { attack: 2, decay: 1000, sustain: 0, release: 200 },
+    pitch_sweep: { start_semi: 0, end_semi: 0, time_ms: 0 },
+    mix: { master: 0.75 },
+    filter: { lpf_hz: 3000, hpf_hz: 40, bit_depth: 8, sr_crush_hz: 44100 },
+    osc: { wave: "noise", duty: 0.25, detune_cents: 0, wave32: null, noise_rate_hz: 600 }
+  },
+  gameOverTone: {
+    note: 36,
+    len_ms: 600,
+    env_ms: { attack: 20, decay: 1300, sustain: 0, release: 1800 },
+    pitch_sweep: { start_semi: 12, end_semi: -12, time_ms: 300 },
+    mix: { master: 0.5 },
+    filter: { lpf_hz: 10000, hpf_hz: 80, bit_depth: 12, sr_crush_hz: 44100 },
+    osc: { wave: "square", duty: 0.125, detune_cents: 0, wave32: null, noise_rate_hz: 600 }
+  },
+  gameOverNoise: {
+    note: 46,
+    len_ms: 2000,
+    env_ms: { attack: 20, decay: 1300, sustain: 0, release: 1800 },
+    pitch_sweep: { start_semi: 0, end_semi: 0, time_ms: 0 },
+    mix: { master: 0.1 },
+    filter: { lpf_hz: 12000, hpf_hz: 40, bit_depth: 12, sr_crush_hz: 44100 },
+    osc: { wave: "noise", duty: 0.25, detune_cents: 0, wave32: null, noise_rate_hz: 2000 }
+  }
+};
+
+function playSFX(name) {
+  if (SFXmute) return;
+
+  const core = ensureSqCore();
+  const tone = SQ_TONE_SFX[name];
+  if (!core || !tone) return;
+
+  const busKey = 'sfx_' + name;
+  const trackId = busKey; // monophonic per SFX type
+
+  // bus方式があれば使う（Edge/iOSでのGC・ノード乱立を抑える）
+  if (typeof core.playToneBus === 'function') {
+    core.playToneBus(tone, 0, busKey, trackId);
+  } else {
+    core.playTone(tone, 0, trackId);
+  }
+}
+
+
+  function startBGM() {
+    initBgmPlayer();
+    if (!bgmPlayer) return;
+    updateBGMGainByMute();
+    bgmPlayer.start();
+  }
+
+  function stopBGM(){
+    if (bgmPlayer) bgmPlayer.stop();
+    bgmPlayer = null;
+
+  }
+
+  // ===== START SFX from Astrovader (移植) =====
+  function playStartSFX(){
+    if (typeof SFXmute !== 'undefined' && SFXmute) return;
+    ensureAudioContext();
+
+    const AC = audioCtx;
+    const T  = 1.0;
+    const t0 = AC.currentTime + 0.02;
+
+    const tri = AC.createOscillator();
+    tri.type = "triangle";
+    tri.frequency.setValueAtTime(45, t0);
+    tri.frequency.exponentialRampToValueAtTime(272, t0 + T);
+
+    const triGain = AC.createGain();
+    triGain.gain.setValueAtTime(0.45, t0);
+
+    const sq = AC.createOscillator();
+    sq.type = "square";
+    sq.frequency.setValueAtTime(45, t0);
+    sq.frequency.exponentialRampToValueAtTime(272, t0 + T);
+
+    const sqGain = AC.createGain();
+    sqGain.gain.setValueAtTime(0.0, t0);
+    sqGain.gain.linearRampToValueAtTime(0.20, t0 + T);
+
+    const lfo = AC.createOscillator();
+    lfo.type = "sine";
+    lfo.frequency.setValueAtTime(6.0, t0);
+
+    const lfoGain = AC.createGain();
+    lfoGain.gain.setValueAtTime(5.0, t0 + T * 0.7);
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(tri.frequency);
+    lfoGain.connect(sq.frequency);
+
+    const nb = AC.createBuffer(1, Math.ceil(AC.sampleRate * T), AC.sampleRate);
+    const ch = nb.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+
+    const ns = AC.createBufferSource();
+    ns.buffer = nb;
+
+    const hp = AC.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 800;
+
+    const nG = AC.createGain();
+    nG.gain.setValueAtTime(0.0, t0);
+    nG.gain.linearRampToValueAtTime(0.18, t0 + T * 0.9);
+
+    ns.connect(hp).connect(nG);
+
+    const ws = AC.createWaveShaper();
+    const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) {
+      const x = i / 128 - 1;
+      curve[i] = Math.tanh(1.4 * x);
+    }
+    ws.curve = curve;
+    ws.oversample = "4x";
+
+    const mix = AC.createGain();
+    mix.gain.setValueAtTime(0.26, t0);
+
+    tri.connect(triGain).connect(ws);
+    sq.connect(sqGain).connect(ws);
+    nG.connect(ws);
+    ws.connect(mix).connect(sfxGain);
+
+    tri.start(t0);
+    sq.start(t0);
+    lfo.start(t0);
+    ns.start(t0);
+
+    tri.stop(t0 + T);
+    sq.stop(t0 + T);
+    lfo.stop(t0 + T);
+    ns.stop(t0 + T);
+  }
+
+function syncPixelRatio(){
+  const DPR = window.devicePixelRatio || 1;
+  const W = 600, H = 600;
+  canvas.width  = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled = false;
+}
+  syncPixelRatio();
+  window.addEventListener('resize', syncPixelRatio);
+
+  // ===== shared noise buffer =====
+  let sharedNoiseBuffer = null;
+  function getNoiseBuffer() {
+    ensureAudioContext();
+    if (sharedNoiseBuffer) return sharedNoiseBuffer;
+    const durSec = 2.0;
+    const sr = audioCtx.sampleRate;
+    const buf = audioCtx.createBuffer(1, sr * durSec, sr);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) {
+      ch[i] = Math.random() * 2 - 1;
+    }
+    sharedNoiseBuffer = buf;
+    return sharedNoiseBuffer;
+  }
+
+  function makeBitDepthCurve(bits) {
+    const levels = Math.pow(2, bits);
+    const n = 2048;
+    const curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 2 - 1;
+      const q = Math.round((x * 0.5 + 0.5) * (levels - 1)) / (levels - 1);
+      curve[i] = q * 2 - 1;
+    }
+    return curve;
+  }
+
+  const __noiseBufCache = {};
+  function getWhiteSHBuffer(rateHz) {
+    ensureAudioContext();
+    const key = 'white_' + rateHz;
+    if (__noiseBufCache[key]) return __noiseBufCache[key];
+
+    const sr = audioCtx.sampleRate;
+    const dur = 1.0;
+    const length = Math.floor(sr * dur);
+    const raw = new Float32Array(length);
+    for (let i = 0; i < length; i++) {
+      raw[i] = Math.random() * 2 - 1;
+    }
+    const step = Math.max(1, Math.floor(sr / Math.max(20, rateHz)));
+    const sh = new Float32Array(length);
+    let last = raw[0];
+    let c = 0;
+    for (let i = 0; i < length; i++) {
+      if (c === 0) {
+        last = raw[i];
+        c = step;
+      }
+      sh[i] = last;
+      c--;
+    }
+
+    const buf = audioCtx.createBuffer(1, length, sr);
+    buf.copyToChannel(sh, 0);
+    __noiseBufCache[key] = buf;
+    return buf;
+  }
+
+  function playNoisePresetOnce(opts) {
+    if (SFXmute) return;
+    ensureAudioContext();
+
+    const now = audioCtx.currentTime;
+    const src = audioCtx.createBufferSource();
+    src.buffer = getWhiteSHBuffer(opts.rate_hz || 600);
+
+    const hpf = audioCtx.createBiquadFilter();
+    hpf.type = 'highpass';
+    hpf.frequency.value = opts.hpf_hz ?? 40;
+
+    const lpf = audioCtx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = opts.lpf_hz ?? 12000;
+
+    const shaper = audioCtx.createWaveShaper();
+    shaper.curve = makeBitDepthCurve(opts.bit_depth ?? 10);
+
+    const g = audioCtx.createGain();
+    const att = (opts.env_ms?.attack ?? 2) / 1000;
+    const dec = (opts.env_ms?.decay ?? 140) / 1000;
+    const rel = (opts.env_ms?.release ?? 120) / 1000;
+    const maxG = opts.gain ?? 0.35;
+
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(maxG, now + att);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + att + dec);
+
+    src.connect(hpf).connect(lpf).connect(shaper).connect(g).connect(sfxGain);
+
+    src.start(now);
+    src.stop(now + att + dec + rel + 0.05);
+
+    return src;
+  }
+
+  let currentEnemyExpl = null;
+  let currentPlayerExpl = null;
+
+function playEnemyExplosionMonophonic(gen = 1) {
+  if (SFXmute) return;
+
+  // 既存のモノフォニック処理はそのまま
+  if (currentEnemyExpl) {
+    try { currentEnemyExpl.stop(); } catch (_) {}
+    currentEnemyExpl = null;
+  }
+
+  // SQ Tone Editor で作った Exp 設定をベースにする
+  const tone = SQ_TONE_SFX.exp || {};
+  const env = tone.env_ms || {};
+  const mix = tone.mix || {};
+  const filter = tone.filter || {};
+  const osc = tone.osc || {};
+
+  // ベースのノイズレート + gen による少しの変化（元の仕様を維持）
+  const baseRate = osc.noise_rate_hz ?? 600;
+  const rate = baseRate + 30 * (gen - 1);
+
+  // 爆発全体のラウドネス（必要に応じてあとで調整してOK）
+  const gain = (mix.master ?? 0.5) * 0.8;
+
+  currentEnemyExpl = playNoisePresetOnce({
+    type: "white",
+    rate_hz: rate,
+    env_ms: {
+      attack: env.attack ?? 2,
+      decay:  env.decay  ?? 1000,
+      sustain: 0,
+      release: env.release ?? 200
+    },
+    gain,
+    lpf_hz: filter.lpf_hz ?? 2000,
+    hpf_hz: filter.hpf_hz ?? 100,
+    bit_depth: filter.bit_depth ?? 8,
+    sr_crush_hz: filter.sr_crush_hz ?? 44100
+  });
+}
+
+function playPlayerExplosionMonophonic() {
+  if (SFXmute) return;
+
+  if (currentPlayerExpl) {
+    try { currentPlayerExpl.stop(); } catch (_) {}
+    currentPlayerExpl = null;
+  }
+
+  const tone = SQ_TONE_SFX.surfaceExp || {};
+  const env = tone.env_ms || {};
+  const mix = tone.mix || {};
+  const filter = tone.filter || {};
+  const osc = tone.osc || {};
+
+  const rate = osc.noise_rate_hz ?? 1100;
+  const gain = (mix.master ?? 0.6) * 0.8;
+
+  currentPlayerExpl = playNoisePresetOnce({
+    type: "white",
+    rate_hz: rate,
+    env_ms: {
+      attack: env.attack ?? 2,
+      decay:  env.decay  ?? 1400,
+      sustain: 0,
+      release: env.release ?? 200
+    },
+    gain,
+    lpf_hz: filter.lpf_hz ?? 10000,
+    hpf_hz: filter.hpf_hz ?? 300,
+    bit_depth: filter.bit_depth ?? 10,
+    sr_crush_hz: filter.sr_crush_hz ?? 44100
+  });
+}
+
+  // ====== SFX: title jingle (Astrovaderから) ======
+  const SFX = (() => {
+    const AC = new (window.AudioContext || window.webkitAudioContext)();
+    ['click','keydown','touchstart'].forEach(ev =>
+      window.addEventListener(ev, ()=>AC.resume(), {once:true})
+    );
+    const master = AC.createGain();
+    master.gain.value = 0.9;
+    master.connect(AC.destination);
+
+    let muted = false;
+    function unlock() {
+      if (AC.state === "suspended") {
+        AC.resume?.();
+      }
+    }
+
+    function noise({ dur = 0.12, vol = 0.32, type = "bandpass", q = 6, freq = 700, sweep = 0, t0 = AC.currentTime }) {
+      if (muted) return;
+      const src = AC.createBufferSource();
+      const buf = AC.createBuffer(1, Math.floor(AC.sampleRate * dur), AC.sampleRate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) {
+        ch[i] = Math.random() * 2 - 1;
+      }
+      src.buffer = buf;
+
+      const biq = AC.createBiquadFilter();
+      biq.type = type;
+      biq.Q.value = q;
+      biq.frequency.setValueAtTime(freq, t0);
+      if (sweep !== 0) {
+        biq.frequency.linearRampToValueAtTime(freq + sweep, t0 + dur);
+      }
+
+      const g = AC.createGain();
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+
+      src.connect(biq).connect(g).connect(master);
+      src.start(t0);
+      src.stop(t0 + dur + 0.03);
+    }
+
+    function startJingle() {
+      unlock();
+      const t0 = AC.currentTime + 0.02;
+      noise({ dur: 0.11, vol: 0.32,  type: "bandpass", q: 6, freq: 700,  sweep: +300, t0: t0 });
+      noise({ dur: 0.11, vol: 0.32,  type: "bandpass", q: 6, freq: 950,  sweep: +350, t0: t0 + 0.12 });
+      noise({ dur: 0.12, vol: 0.32, type: "bandpass", q: 6, freq: 1200, sweep: +400, t0: t0 + 0.24 });
+      noise({ dur: 0.10, vol: 0.35,  type: "bandpass", q: 6, freq: 1450, sweep: +450, t0: t0 + 0.36 });
+    }
+    
+
+    return {
+      startJingle,
+      toggle(){ muted = !muted; },
+      unlock,
+      get audioContext() { return AC; }
+    };
+  })();
+
+  // ---- Game Over SFX ----
+  function midiToHz(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+function playGameOverSFX() {
+  if (SFXmute) return;
+  const core = ensureSqCore();
+  if (!core) return;
+
+  core.playTone(SQ_TONE_SFX.gameOverTone, 0);
+  core.playTone(SQ_TONE_SFX.gameOverNoise, 0);
+}
+
+  // --- Mult popup chime ---
+  function playMultChime() {
+    if (SFXmute) return;
+    ensureAudioContext();
+
+    const base = audioCtx.currentTime + 0.01;
+    const freqs = [700, 900, 1100];
+    const gap   = 0.07;
+
+    freqs.forEach((f, idx) => {
+      const t = base + idx * gap;
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+
+      osc.type = "square";
+      osc.frequency.setValueAtTime(f, t);
+
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.12, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+
+      osc.connect(g).connect(sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.09);
+    });
+  }
+
+  // ---------- Timing ----------
+  const FPS_TARGET = 60, FRAME_MS = 1000/FPS_TARGET;
+  let last = performance.now(), acc = 0, fps = 0, fpsTimer = 0, frames = 0;
+
+  // ---------- Game State ----------
+  let state = 'title';
+  let paused = false;
+  let logicMs = 0;
+  const PROG_TIME_MS = 120000;
+  let runStartMs = 0;
+  // 起動直後のボタンラベルを state / isMobilePlatform に合わせる
+  updateTitleButtonLabel();
+  
+function enterPause(){
+  if (state === 'running' && !gameOver) {
+    state = 'paused';
+    paused = true;
+
+    if (bgmPlayer && typeof bgmPlayer.pause === 'function') {
+      bgmPlayer.pause();
+    }
+  }
+}
+
+function exitPause(){
+  if (state === 'paused') {
+    state = 'running';
+    paused = false;
+
+    if (bgmPlayer && typeof bgmPlayer.resume === 'function' && !BGMmute) {
+      bgmPlayer.resume();
+    }
+  }
+}
+
+function togglePauseNow(){
+  if (gameOver) return;
+  if (state === 'running' && !paused) {
+    enterPause();
+  } else if (state === 'paused' && paused) {
+    exitPause();
+  }
+}
+
+
+  function getProgScale(){
+    const el = Math.max(0, logicMs - runStartMs);
+    if (el <= 120000) {
+      const t = el / 120000;
+      return 1.0 + 0.5 * t;
+    } else if (el <= 240000) {
+      const t = (el - 120000) / 120000;
+      return 1.5 + 0.5 * t;
+    } else {
+      return 2.0;
+    }
+  }
+  
+    // Dur自然減の増加パラメータ
+  const DUR_STEP_START_MS = 120000;  // 2分後から増やす
+  const DUR_STEP_EVERY_MS = 60000;   // 1分ごと
+  const DUR_STEP_AMOUNT   = 0.33;    // だいたい1/3ずつ上げる
+  const DUR_MAX_MUL       = 2.0;     // 4分ちょいでほぼ2.0
+
+  function getDurDrainMul(ms){
+    if (ms < DUR_STEP_START_MS) return 1.0;
+    const extra = ms - DUR_STEP_START_MS;
+    const steps = Math.floor(extra / DUR_STEP_EVERY_MS) + 1;  // 2分目で1ステップ目
+    const mul = 1.0 + steps * DUR_STEP_AMOUNT;
+    return Math.min(mul, DUR_MAX_MUL);
+  }
+
+
+  // ---------- ACTION LAYER ----------
+  const Actions = {
+    moveLeft: false,
+    moveRight: false,
+    shootDown: false,
+    shootLeft: false,
+    shootRight: false,
+    pause: false,
+    startRestart: false,
+    backToTitle: false,
+    soundToggle: false,
+    howToPlay: false
+  };
+
+  // ---------- Input Manager (Keyboard + later mobile/gamepad) ----------
+  const Input = {
+    init() {
+      this.bindKeyboard();
+      this.bindPointer();
+    },
+    bindKeyboard() {
+      window.addEventListener('keydown', e=>{
+        const k = e.key;
+        switch (k) {
+          case 'a': case 'A': Actions.moveLeft = true; e.preventDefault(); break;
+          case 'd': case 'D': Actions.moveRight = true; e.preventDefault(); break;
+          case 'ArrowDown': Actions.shootDown = true; e.preventDefault(); break;
+          case 'ArrowLeft': Actions.shootLeft = true; e.preventDefault(); break;
+          case 'ArrowRight': Actions.shootRight = true; e.preventDefault(); break;
+          case ' ':
+            // iOS対策：解除(=resume)をジェスチャ内で呼ぶ
+            togglePauseNow();
+            e.preventDefault();
+            break;
+          case 'Enter':
+            if (state === 'title') {
+              // iOS対策：タイトル開始は入力イベント内で直接実行（このタップ/キーでBGMも開始できる）
+              startFromTitle();
+            } else {
+              Actions.startRestart = true;
+            }
+            e.preventDefault();
+            break;
+          case 'Escape': Actions.backToTitle = true; e.preventDefault(); break;
+          case 'm': case 'M': Actions.soundToggle = true; e.preventDefault(); break;
+          case 'h': case 'H': Actions.howToPlay = true; e.preventDefault(); break;
+        }
+      });
+      window.addEventListener('keyup', e=>{
+        const k = e.key;
+        switch (k) {
+          case 'a': case 'A': Actions.moveLeft = false; break;
+          case 'd': case 'D': Actions.moveRight = false; break;
+          case 'ArrowDown': Actions.shootDown = false; break;
+          case 'ArrowLeft': Actions.shootLeft = false; break;
+          case 'ArrowRight': Actions.shootRight = false; break;
+          default: break;
+        }
+      });
+    },
+    bindPointer() {
+      canvas.addEventListener('pointerdown', e=>{
+        if (state === 'title') {
+          // iOS対策：開始はこのタップ内で直接実行（BGMのunlock+startを同じジェスチャで通す）
+          startFromTitle();
+        } else if (gameOver) {
+          // ゲームオーバー時のリスタートも同様に、このタップ内で実行
+          persistHSIfBetter();
+          hudHighScore = highScore;
+          hudHighMult  = highMult;
+          resetGame();
+          startBGM();
+          // playStartSFX?.();
+        } else if (state === 'running' || state === 'paused') {
+          // iOS対策：解除(=resume)をジェスチャ内で呼ぶ
+          togglePauseNow();
+        }
+
+        e.preventDefault();
+      });
+    }
+  };
+  Input.init();
+
+// ---------- Gamepad (XInput-style, hold & edge対応) ----------
+const GamepadInput = {
+  deadzone: 0.25,
+  prevButtons: [],
+
+  getFirstPad(){
+    const list = navigator.getGamepads ? navigator.getGamepads() : [];
+    if (!list) return null;
+    for (let i = 0; i < list.length; i++) {
+      const gp = list[i];
+      if (gp && gp.connected) return gp;
+    }
+    return null;
+  },
+
+  poll(){
+    const gp = this.getFirstPad();
+    if (!gp) {
+      this.prevButtons = [];
+      return;
+    }
+
+    Actions.moveLeft  = false;
+    Actions.moveRight = false;
+    Actions.shootDown  = false;
+    Actions.shootLeft  = false;
+    Actions.shootRight = false;
+
+    const btn = (i) => gp.buttons[i] && gp.buttons[i].pressed;
+    const was = (i) => this.prevButtons[i];
+    const justPressed = (i) => btn(i) && !was(i);
+
+    const dz = this.deadzone;
+
+    const lx = gp.axes[0] || 0;
+    if (lx < -dz) {
+      Actions.moveLeft = true;
+    } else if (lx > dz) {
+      Actions.moveRight = true;
+    }
+
+    if (btn(14)) Actions.moveLeft  = true;
+    if (btn(15)) Actions.moveRight = true;
+
+    if (btn(0)) Actions.shootDown  = true;
+    if (btn(2)) Actions.shootLeft  = true;
+    if (btn(1)) Actions.shootRight = true;
+
+if (justPressed(9)) { // Start
+  if (gameOver) {
+    Actions.startRestart = true;      // ★ ゲームオーバーは必ずリスタート
+  } else if (state === 'running' || state === 'paused') {
+    Actions.pause = true;             // ★ プレイ中はポーズ切替
+  } else {
+    Actions.startRestart = true;      // ★ タイトルは開始
+  }
+}
+
+
+    if (justPressed(8)) {        // Back / View
+      Actions.howToPlay = true;
+    }
+
+    if (justPressed(3)) {        // Y
+      Actions.soundToggle = true;
+    }
+
+    this.prevButtons = gp.buttons.map(b => b && b.pressed);
+  }
+};
+
+  // ===== Mobile pad bindings =====
+  if (isMobilePlatform) {
+    // 1: move ←
+    bindPadHold(btnPadMoveL,
+      () => { Actions.moveLeft  = true; },
+      () => { Actions.moveLeft  = false; }
+    );
+
+    // 2: move →
+    bindPadHold(btnPadMoveR,
+      () => { Actions.moveRight = true; },
+      () => { Actions.moveRight = false; }
+    );
+
+    // 3: shoot ↙ → shootLeft
+    bindPadHold(btnPadShootL,
+      () => { Actions.shootLeft = true; },
+      () => { Actions.shootLeft = false; }
+    );
+
+    // 4: shoot ↓
+    bindPadHold(btnPadShootD,
+      () => { Actions.shootDown = true; },
+      () => { Actions.shootDown = false; }
+    );
+
+    // 5: shoot ↘ → shootRight
+    bindPadHold(btnPadShootR,
+      () => { Actions.shootRight = true; },
+      () => { Actions.shootRight = false; }
+    );
+  }
+  
+  if (isMobilePlatform && btnTitle) {
+    btnTitle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+
+      if (state === 'title') {
+        window.open("https://ryosatoanime.github.io/Astrovader/", "_blank");
+      } else {
+        Actions.backToTitle = true;
+      }
+    });
+  }
+
+  if (isMobilePlatform && btnHowto) {
+    btnHowto.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      Actions.howToPlay = true;
+    });
+  }
+
+  function bindPadHold(button, onPress, onRelease){
+    if (!button) return;
+    let active = false;
+
+    const start = (e) => {
+      e.preventDefault();
+      active = true;
+      onPress();
+    };
+    const end = (e) => {
+      if (!active) return;
+      active = false;
+      onRelease();
+    };
+
+    button.addEventListener('pointerdown', start);
+    button.addEventListener('pointerup', end);
+    button.addEventListener('pointerleave', end);
+    button.addEventListener('pointercancel', end);
+  }
+
+if (btnMute) {
+  btnMute.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    Actions.soundToggle = true;
+  });
+}
+
+
+function consumeAction(flag){
+  if (Actions[flag]) { Actions[flag] = false; return true; }
+  return false;
+}
+
+function onGameOverEnter(){
+  if (gameOver) return;
+  gameOver = true;
+
+  persistHSIfBetter();
+  savedHSThisRun = true;
+
+  if (!savedPrevThisRun) {
+    saveNum(PS_KEY, score);
+    saveNum(PM_KEY, mult);
+    savedPrevThisRun = true;
+  }
+
+  pendingHSPersist = false;
+  stopBGM();
+}
+// ---------- Title Start ----------
+function startFromTitle(){
+  resetGame();
+  state = 'running';
+  hudHighScore = highScore;
+  hudHighMult  = highMult;
+  updateTitleButtonLabel();   // ★ ゲームが走り出したので Title 表示に戻す
+  startBGM();
+  // playStartSFX?.();
+}
+
+
+  // === HowTo Overlay control (Actionベースにする) ===
+  const howtoEl = document.getElementById('howtoOverlay');
+  const howtoPanel = howtoEl.querySelector('.howto-panel');
+  let howtoVisible = false;
+  let howtoResumeOnClose = false;
+
+  function positionHowtoToCanvasCenter(){
+    const r = canvas.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    Object.assign(howtoPanel.style, {
+      position: 'fixed',
+      left: `${Math.round(cx)}px`,
+      top:  `${Math.round(cy)}px`,
+      transform: 'translate(-50%, -50%)'
+    });
+  }
+
+function showHowto(){
+  if(howtoVisible) return;
+  howtoVisible = true;
+  howtoEl.style.display = 'block';
+  howtoEl.setAttribute('aria-hidden','false');
+  positionHowtoToCanvasCenter();
+  document.body.classList.add('howto-open');
+
+  // ★ ここを「paused直書き」じゃなくて enterPause() 経由にする
+  if(state === 'running' && !paused && !gameOver){
+    enterPause();               // ← これでBGMも止まる
+    howtoResumeOnClose = true;  // ← 閉じたら戻す
+  } else {
+    howtoResumeOnClose = false;
+  }
+}
+
+function hideHowto(){
+  if(!howtoVisible) return;
+  howtoVisible = false;
+  howtoEl.style.display = 'none';
+  howtoEl.setAttribute('aria-hidden','true');
+  document.body.classList.remove('howto-open');
+
+  // ★ showHowtoで「enterPauseした場合だけ」戻す
+  if(howtoResumeOnClose && state === 'paused' && paused && !gameOver){
+    exitPause(); // ← これでBGMも復帰（ミュート設定があればそのルールに従う）
+  }
+}
+
+
+  howtoEl.addEventListener('pointerdown', e => {
+    if (!howtoVisible) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    hideHowto();
+  }, { capture: true });
+  window.addEventListener('resize', () => { if(howtoVisible) positionHowtoToCanvasCenter(); });
+  window.addEventListener('scroll',  () => { if(howtoVisible) positionHowtoToCanvasCenter(); }, { passive:true });
+
+  // ---------- Restart Helper ----------
+  function resetGame(){
+    gameOver = false;
+    gameOverShown = false;
+    savedHSThisRun = false; pendingHSPersist = false;
+    savedHSThisRun = false;
+    runHighBroken = false;
+    savedPrevThisRun = false;
+
+    enemies.length = 0;
+    bullets.length = 0;
+    mines.length = 0;
+    explosions.length = 0;
+    dangerBursts.length = 0;
+
+    score = 0;
+    mult  = 1;
+    lastAnnouncedMult10 = 0;
+    
+    for (const k in rootMaxGenAwarded) delete rootMaxGenAwarded[k];
+
+    durNow = durTarget = durAnimFrom = DUR_MAX;
+    durAnimStartMs = logicMs;
+    spawnTimer = nextSpawnInterval();
+
+    ship.x = 300;
+    ship.y = 100;
+
+    isAlive = true;
+    gameOver = false;
+    state = 'running';
+    runStartMs = logicMs;
+  }
+
+  // ---------- Player ----------
+  const ship = { x:300, y:100, speed:180, color:'#3cf' };
+  let isAlive = true;
+
+  // ---------- Enemies ----------
+  const BODY_W=60, BODY_H=20, SIDE_R=10;
+  const ENEMY_HIT_W = 80;
+  const ENEMY_HIT_H = BODY_H;
+  const ENEMY_HIT_X_OFFSET = 0;
+  const ENEMY_HIT_Y_OFFSET = 0;
+
+  const LANE_COUNT=5, LANE_BASE_Y=100, LANE_GAP=90;
+  const baseLanes = [0,1,2,3,4].map(i=> LANE_BASE_Y + LANE_GAP*(i+1));
+  const SUBLANES=[-20,20], SUB_JITTER=5;
+
+  const levelScore=[0,1,2,3,4,5];
+  const levelSpeed=[0,54,48,42,36,30];
+  const enemies=[];
+
+  const levelWeights=[0,1.20,1.10,1.00,0.90,0.80];
+  function chooseLevelIndexByWeight(){
+    const arr=[1,2,3,4,5];
+    const weights=arr.map(l=>levelWeights[l]);
+    const total=weights.reduce((s,v)=>s+v,0);
+    let r=Math.random()*total;
+    for(let i=0;i<weights.length;i++){
+      if(r<weights[i]) return i;
+      r-=weights[i];
+    }
+    return weights.length-1;
+  }
+
+  function nextSpawnInterval(){ return 700 + Math.random()*1400; }
+  let spawnTimer = nextSpawnInterval();
+  const MIN_SPAWN_SPACING=120;
+
+  // ---------- Bullets ----------
+  const BULLET_SPEED=240, BULLET_W=4, BULLET_H=14, MAX_BULLETS=3, FIRE_COOLDOWN_MS=750;
+  const bullets=[]; let lastFireAt=0;
+
+  // ---------- Mines ----------
+  const MINE_SPEED=50;
+  const MINE_EDGE_MARGIN=30;
+  const MINE_HIT_R=10, MINE_FILL_R=4, MINE_COLOR='#f10';
+  const mines=[];
+  const MINE_SHOTS_PARAM_BY_LEVEL = {
+    1: 0.10,
+    2: 0.50,
+    3: 1.00,
+    4: 1.50,
+    5: 2.20
+  };
+  const MINE_SHOTS_SCALE_MAX = 1.6;
+  const MINE_SHOTS_SCALE_START = 1.6;
+  function getProgT(){
+    const el = Math.max(0, logicMs - runStartMs);
+    return Math.min(1, el / PROG_TIME_MS);
+  }
+  function getMineShotsParam(level){
+    const base = Math.max(0, MINE_SHOTS_PARAM_BY_LEVEL[level] || 0);
+    const t = getProgT();
+    const scale = MINE_SHOTS_SCALE_START - (MINE_SHOTS_SCALE_START - 1) * t;
+    return base * scale;
+  }
+
+  // ---------- Explosions ----------
+const explosions = [];
+
+const rootMaxGenAwarded = {};
+
+function awardGenIfFirst(rootId, gen){
+  const prev = (rootMaxGenAwarded[rootId] ?? 1);
+  if (gen > prev) {
+    addToMult(genBonus(gen));
+    rootMaxGenAwarded[rootId] = gen;
+  } 
+    else if (rootMaxGenAwarded[rootId] === undefined) {
+    rootMaxGenAwarded[rootId] = prev;
+  }
+}
+
+
+
+function spawnExplosion(x, y, gen = 1, rootId = null){
+  playEnemyExplosionMonophonic(gen);
+  if (rootId == null) rootId = nextRootId++;
+  explosions.push({ x, y, t:0, gen, root:rootId });
+  onGenExplosion(gen);
+}
+
+  const EXP_R_MIN=12, EXP_R_MAX=60, EXP_T_EXPAND=1.0, EXP_T_SHRINK=2.0;
+  function explosionRadiusAt(t){
+    if(t<0) return 0;
+    if(t<=EXP_T_EXPAND) return EXP_R_MIN + (EXP_R_MAX-EXP_R_MIN)*(t/EXP_T_EXPAND);
+    if(t<=EXP_T_EXPAND+EXP_T_SHRINK) return EXP_R_MAX*(1 - (t-EXP_T_EXPAND)/EXP_T_SHRINK);
+    return 0;
+  }
+
+
+
+  // ---------- Horizon Danger Bursts ----------
+  const dangerBursts=[];
+  const HORIZON_Y = 100;
+  const BURST_Y_OFFSET = -1;
+  const BURST_Y = HORIZON_Y + BURST_Y_OFFSET;
+  function spawnDangerBurst(x,y){
+    dangerBursts.push({ x, y, t:0 });
+    playPlayerExplosionMonophonic();
+  }
+  const DANGER_R_MIN=12, DANGER_R_MAX=60, DANGER_T_EXPAND=1.0, DANGER_T_SHRINK=2.0;
+  function dangerBurstRadiusAt(t){
+    if(t<0) return 0;
+    if(t<=DANGER_T_EXPAND) return DANGER_R_MIN + (DANGER_R_MAX-DANGER_R_MIN)*(t/DANGER_T_EXPAND);
+    if(t<=DANGER_T_EXPAND+DANGER_T_SHRINK) return DANGER_R_MAX*(1 - (t-DANGER_T_EXPAND)/DANGER_T_SHRINK);
+    return 0;
+  }
+
+  // ---------- Gen Mult system ----------
+  let score=0, gameOver=false;
+  let mult = 1;
+  let nextRootId = 1;
+  const GEN_COLOR = g => (g>=5? '#f10' : (g===4? '#f60' : (g===3? '#fc0' : (g===2? '#ff0' : '#fff'))));
+  function hexToRGBA(hex,a){
+    const map = { '#fff':[255,255,255], '#ff0':[255,255,0], '#fc0':[252,192,0], '#f60':[255,102,0], '#f10':[255,16,0] };
+    const rgb = map[hex] || [255,255,255];
+    return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
+  }
+  const genBonus = g => Math.max(0, g - 1);
+  let lastAnnouncedMult10 = 0;
+  function addToMult(delta){
+    if(!delta) return;
+    const prev = mult;
+    mult += delta;
+    const milestone = Math.floor(mult / 10) * 10;
+    if(milestone >= 10 && milestone > lastAnnouncedMult10){
+      triggerTopPopup(`Mult x${milestone}`, '#0ff');
+      playMultChime(); 
+      lastAnnouncedMult10 = milestone;
+    }
+  }
+  
+function checkRunHighBroken(){
+  if (runHighBroken) return;
+  if (score > highScore){
+    runHighBroken = true;
+    playMultChime();
+    triggerTopPopup("Record broken!", "#f33");
+  }
+}
+
+  // ---------- Durability ----------
+  const DUR_MAX = 10;
+  const ENEMY_MISS_COST = 1.0;
+  const MINE_MISS_COST_BASE = 0.2;
+  const MINE_MISS_COST_MAX  = 1.0;
+  function getMineMissCost(){
+    const el = Math.max(0, logicMs - runStartMs);
+    const t  = Math.min(1, el / PROG_TIME_MS);
+    return MINE_MISS_COST_BASE + (1.0 - MINE_MISS_COST_BASE) * t;
+  }
+  const DUR_ANIM_MS     = 250;
+  const PASSIVE_DUR_DRAIN_PER_SEC = 0.1;
+  const PASSIVE_DUR_DRAIN_SCALED  = false;
+
+  let durNow = DUR_MAX;
+  let durTarget = DUR_MAX;
+  let durAnimFrom = DUR_MAX;
+  let durAnimStartMs = 0;
+  let durColorMode = 'none';
+  let durColorStartMs = 0;
+  const DUR_TWEEN_MS = 450;
+  function triggerDurColor(mode){
+    durColorMode = mode;
+    durColorStartMs = logicMs;
+  }
+  function applyDurLoss(units){
+    if(units <= 0) return;
+    durAnimFrom   = durNow;
+    durTarget     = Math.max(0, durTarget - units);
+    durAnimStartMs = logicMs;
+  }
+  function applyDurGain(units){
+    if(units <= 0) return;
+    durAnimFrom   = durNow;
+    durTarget     = Math.min(DUR_MAX, durTarget + units);
+    durAnimStartMs = logicMs;
+  }
+  function durHealByGen(g){
+    if(g>=5) return 2.0;
+    if(g===4) return 1.0;
+    if(g===3) return 0.5;
+    if(g===2) return 0.2;
+    if(g===1) return 0.1;
+    return 0.0;
+  }
+  function onGenExplosion(gen){
+    const heal = durHealByGen(gen||1);
+    if(heal>=1) triggerDurColor('heal');
+    if(heal>0) applyDurGain(heal);
+  }
+  function onEnemyMiss(){ triggerDurColor('damage'); applyDurLoss(ENEMY_MISS_COST); }
+  function onMineMiss(){  applyDurLoss(getMineMissCost()); }
+
+  // ---------- Firing ----------
+  const ANGLES = { ArrowDown:90, ArrowRight:60, ArrowLeft:120 };
+  const toRad = d => d*Math.PI/180;
+  
+  const FIRE_ORIGIN = {
+    ArrowDown:  { dx:  0, dy:  3 },
+    ArrowRight: { dx: +20, dy:  3 },
+    ArrowLeft:  { dx: -20, dy:  3 }
+  };
+  
+  function tryFireFromKey(key){
+    if(!isAlive) return false;
+    const now = performance.now();
+    if(now - lastFireAt < FIRE_COOLDOWN_MS / getProgScale()) return false;
+    if(bullets.length >= MAX_BULLETS) return false;
+  
+    const deg = ANGLES[key]; if(deg === undefined) return false;
+    const r = toRad(deg);
+  
+    const origin = FIRE_ORIGIN[key] || FIRE_ORIGIN.ArrowDown;
+    const startX = ship.x + origin.dx;
+    const startY = ship.y + origin.dy;
+  
+    bullets.push({
+      x:  startX,
+      y:  startY,
+      vx: Math.cos(r)*BULLET_SPEED,
+      vy: Math.sin(r)*BULLET_SPEED
+    });
+  
+    lastFireAt = now;
+    playSFX('fire');
+    return true;
+  }
+
+  // ---------- Spawn enemy ----------
+  function spawnEnemy(){
+    const tries=16;
+    for(let t=0; t<tries; t++){
+      const levelIndex=chooseLevelIndexByWeight();
+      const subIndex=Math.floor(Math.random()*SUBLANES.length);
+      const baseY=baseLanes[levelIndex];
+      const y = baseY + SUBLANES[subIndex] + ((Math.random()*2-1)*SUB_JITTER);
+      const level=levelIndex+1;
+      const dir = Math.random()<0.5 ? 'right' : 'left';
+      const speed=levelSpeed[level];
+
+      let startCx = (dir==='right')? -(SIDE_R+BODY_W)-8 : 600+SIDE_R+8;
+
+      let conflict=false;
+      for(const e of enemies){
+        if(e.level===level && e.sub===subIndex){
+          if(e.dir===dir){
+            if(Math.abs(e.cx-startCx)<MIN_SPAWN_SPACING){ conflict=true; break; }
+          }
+          else { conflict=true; break; }
+        }
+      }
+      if(conflict) continue;
+
+      const exitMargin=100;
+      const distanceToExit = (dir==='right') ? (600+exitMargin)-startCx : startCx-(-exitMargin);
+      const estTimeSec = Math.max(0.1, distanceToExit / Math.max(1, Math.abs(speed)));
+      const fireDelayMs = (estTimeSec*1000) * (0.1 + Math.random()*0.7) * (2/3);
+
+      enemies.push({
+        cx:startCx, y, level, sub:subIndex, dir,
+        vx:(dir==='right')? speed : -speed,
+        score: levelScore[level],
+        spawnMs: logicMs,
+        mineSchedule: (() => {
+          const p = Math.max(0, getMineShotsParam(level));
+          const guaranteed = Math.floor(p);
+          const extraProb  = p - guaranteed;
+          let shots = guaranteed + ((Math.random() < extraProb) ? 1 : 0);
+          if (shots <= 0) return [];
+
+          const estMs = estTimeSec * 1000;
+          const K = (2/3);
+          const tMin = estMs * 0.10 * K;
+          const tMax = estMs * 0.85 * K;
+
+          const arr = [];
+          for (let i=0;i<shots;i++){
+            arr.push(Math.random() * (tMax - tMin) + tMin);
+          }
+          arr.sort((a,b)=>a-b);
+          const SEP = 1000;
+          for (let i=1;i<arr.length;i++){
+            if (arr[i] - arr[i-1] < SEP) arr[i] = arr[i-1] + SEP;
+          }
+          return arr.map(dt => logicMs + dt);
+        })(),
+        mineIdx: 0
+      });
+      playSFX('spawn');
+      return true;
+    }
+    return false;
+  }
+
+  // ---------- Collisions ----------
+  function enemyHitRect(e){
+    const cxMid = e.cx + BODY_W/2;
+    const w = ENEMY_HIT_W, h = ENEMY_HIT_H;
+    return { x: cxMid - w/2 + ENEMY_HIT_X_OFFSET,
+             y: e.y - h/2 + ENEMY_HIT_Y_OFFSET,
+             w, h };
+  }
+  function bulletHitsEnemyRect(b,e){
+    const r = enemyHitRect(e);
+    return (b.x >= r.x && b.x <= r.x + r.w && b.y >= r.y && b.y <= r.y + r.h);
+  }
+  function bulletHitsMine(b,m){
+    const dx=b.x-m.x, dy=b.y-m.y;
+    return (dx*dx+dy*dy) <= (MINE_HIT_R*MINE_HIT_R);
+  }
+  function mineHitsShip(m){
+    const left=ship.x-30, right=ship.x+30, top=ship.y-8, bottom=ship.y;
+    const cx=m.x, cy=m.y;
+    const nx=Math.max(left,Math.min(cx,right));
+    const ny=Math.max(top, Math.min(cy,bottom));
+    const dx=cx-nx, dy=cy-ny;
+    return (dx*dx+dy*dy) <= (MINE_HIT_R*MINE_HIT_R);
+  }
+
+  // ---------- Top Popup ----------
+  let multPopup = null;
+  function triggerTopPopup(text, color){
+    multPopup = { text, start: logicMs, dur: 1200, hz: 10, color: (color || '#0ff') };
+  }
+  function drawTopPopup(){
+    if(!multPopup) return;
+    const el = logicMs - multPopup.start;
+    if(el > multPopup.dur){ multPopup = null; return; }
+    const blink = Math.floor((el/1000)*multPopup.hz) % 2 === 0;
+    if(!blink) return;
+    const y = 24;
+    ctx.save();
+    ctx.fillStyle = (multPopup.color || '#0ff');
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.font = "700 32px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+    ctx.translate(600/2, y);
+    ctx.scale(0.95, 1);
+    ctx.fillText(multPopup.text, 0, 0);
+    ctx.restore();
+  }
+
+  // ---------- Kill Point Labels ----------
+  const pointLabels = [];
+  function spawnPointLabel(x, y, amount){
+    const text = String(amount);
+    pointLabels.push({ x, y, text, start: logicMs, dur: 900 });
+  }
+  function drawPointLabels(){
+    if(!pointLabels.length) return;
+    const now = logicMs;
+    for(let i = pointLabels.length - 1; i >= 0; i--){
+      const p = pointLabels[i];
+      const el = now - p.start;
+      if(el > p.dur){ pointLabels.splice(i,1); continue; }
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '700 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+      ctx.fillStyle = '#000';
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.restore();
+    }
+  }
+
+  // ---------- Update ----------
+  function update(dt){
+    GamepadInput.poll();
+    if (Actions.soundToggle) {
+      audioMode = (audioMode + 1) % 3;
+      applyAudioModeClass(audioMode);
+      applyAudioMode();
+      Actions.soundToggle = false;
+    }
+    if (Actions.howToPlay) {
+      if (howtoVisible) hideHowto(); else showHowto();
+      Actions.howToPlay = false;
+    }
+
+    if (howtoVisible) {
+      const wantClose =
+        Actions.pause ||
+        Actions.startRestart ||
+        Actions.backToTitle ||
+        Actions.howToPlay;
+
+      if (wantClose) {
+        hideHowto();
+      }
+
+      Actions.pause = false;
+      Actions.startRestart = false;
+      Actions.backToTitle = false;
+      Actions.howToPlay = false;
+    }
+
+
+    if (state === 'title') {
+      // タイトル画面：Enter でスタート
+      if (Actions.startRestart) {
+        startFromTitle();
+        Actions.startRestart = false;
+      }
+      return;
+    }
+
+    if (Actions.backToTitle) {
+      persistHSIfBetter();
+      
+      hudHighScore = highScore;
+      hudHighMult  = highMult;
+      
+      stopBGM();
+      SFX.startJingle();
+      resetGame();
+      state = 'title';
+      paused = false;
+
+      updateTitleButtonLabel();
+
+      Actions.backToTitle = false;
+      return;
+    }
+
+    // Spaceキーによるポーズ切り替え（ゲームオーバー中は無効）
+    if (Actions.pause && !gameOver) {
+      if (!paused && state === 'running') {
+        // running → paused
+        enterPause();
+      } else if (paused && state === 'paused') {
+        // paused → running
+        exitPause();
+      }
+      Actions.pause = false;
+    }
+
+    // Enterキー：タイトル以外では「ゲームオーバー時のリスタート」だけ
+    if (Actions.startRestart && state !== 'title') {
+      if (gameOver) {
+        persistHSIfBetter();
+        
+        hudHighScore = highScore;
+        hudHighMult  = highMult;
+        
+        resetGame();
+        startBGM();
+        // playStartSFX();
+      }
+      Actions.startRestart = false;
+    }
+
+    const speedMul    = getProgScale();
+    const durDrainMul = getDurDrainMul(logicMs);
+    const dtS = dt * speedMul;
+    if (paused || state !== 'running') return;
+
+    // advance logic time
+    logicMs += dt*1000;
+
+    // Durability tween
+    if (!gameOver && isAlive && durNow !== durTarget) {
+      const t = Math.max(0, Math.min(1, (logicMs - durAnimStartMs) / DUR_ANIM_MS));
+      durNow = durAnimFrom + (durTarget - durAnimFrom) * t;
+    }
+
+    // Passive durability drain
+    if (!gameOver && isAlive) {
+      const drainDt = PASSIVE_DUR_DRAIN_SCALED ? dtS : dt;
+      const drain = PASSIVE_DUR_DRAIN_PER_SEC * durDrainMul * drainDt;
+      if (drain > 0) {
+        durTarget = Math.max(0, durTarget - drain);
+      }
+    }
+    if (isAlive && !gameOver && durNow <= 0) {
+      isAlive = false;
+      onGameOverEnter();
+    }
+
+    if (!isAlive) return;
+    if (!isAlive) return;
+
+    // player move (Actionベース)
+    if (Actions.moveLeft)  ship.x -= ship.speed*dtS;
+    if (Actions.moveRight) ship.x += ship.speed*dtS;
+    const limit = 50;
+    if (ship.x < limit) ship.x = limit;
+    if (ship.x > 600-limit) ship.x = 600-limit;
+
+    // auto-fire (Actionベース)
+    if (Actions.shootDown)  tryFireFromKey('ArrowDown');
+    if (Actions.shootRight) tryFireFromKey('ArrowRight');
+    if (Actions.shootLeft)  tryFireFromKey('ArrowLeft');
+
+    // enemies
+    for(let i=enemies.length-1;i>=0;i--){
+      const e=enemies[i];
+      e.cx += e.vx*dtS;
+
+      // fire mine
+      if (e.mineIdx < (e.mineSchedule ? e.mineSchedule.length : 0)) {
+        if (logicMs >= e.mineSchedule[e.mineIdx]) {
+          const mineX = e.cx + BODY_W*0.5;
+          const mineY = e.y - BODY_H/2 - 2;
+          const within = (mineX >= MINE_EDGE_MARGIN) && (mineX <= 600 - MINE_EDGE_MARGIN);
+          if (within) {
+            mines.push({ x: mineX, y: mineY, vy: -MINE_SPEED });
+            playSFX('mine');
+            e.mineIdx++;
+          } else {
+            e.mineSchedule[e.mineIdx] += 50;
+          }
+        }
+      }
+
+      const hit = enemyHitRect(e);
+      const hitLeft  = hit.x;
+      const hitRight = hit.x + hit.w;
+      const W = 600;
+
+      if (e.vx > 0 && hitLeft >= W) {
+        onEnemyMiss();
+        playSFX('miss');
+        enemies.splice(i,1);
+
+      } else if (e.vx < 0 && hitRight <= 0) {
+        onEnemyMiss();
+        playSFX('miss');
+        enemies.splice(i,1);
+      }
+    }
+    if(!isAlive) return;
+
+    // bullets
+    for(let i=bullets.length-1;i>=0;i--){
+      const b=bullets[i];
+      b.x += b.vx*dtS; b.y += b.vy*dtS;
+      if(b.x<-20||b.x>620||b.y<-50||b.y>650){ bullets.splice(i,1); continue; }
+
+      let hit=false;
+      // mines first
+      for(let m=mines.length-1;m>=0;m--){
+        const mine=mines[m];
+        if(bulletHitsMine(b,mine)){
+          const pts1 = Math.floor(2 * mult);
+          score += pts1;
+          checkRunHighBroken();
+          spawnPointLabel(mine.x, mine.y, pts1);
+
+          spawnExplosion(mine.x, mine.y, 1, null);
+          mines.splice(m,1); bullets.splice(i,1);
+          hit=true; break;
+        }
+      }
+      if(hit) continue;
+
+      // enemies
+      for(let j=enemies.length-1;j>=0;j--){
+        const e=enemies[j];
+        if(bulletHitsEnemyRect(b,e)){
+          const pts2 = Math.floor(e.score * mult);
+          score += pts2;
+          checkRunHighBroken();
+          const ex=e.cx + BODY_W*0.5, ey=e.y;
+          spawnPointLabel(ex, ey, pts2);
+          spawnExplosion(ex, ey, 1, null);
+          enemies.splice(j,1); bullets.splice(i,1);
+          hit=true; break;
+        }
+      }
+      if(hit) continue;
+    }
+
+    // mines
+    for(let i=mines.length-1;i>=0;i--){
+      const m=mines[i];
+      m.y += m.vy*dtS;
+
+      if(m.y - 4 <= HORIZON_Y){
+        spawnDangerBurst(m.x, BURST_Y);
+        onMineMiss(m);
+        mines.splice(i,1);
+        continue;
+      }
+      if(mineHitsShip(m)){ isAlive=false; onGameOverEnter(); break; }
+    }
+    if(!isAlive) return;
+
+    // explosions
+    function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+    function circleIntersectsRect(cx,cy,cr, rx,ry,rw,rh){
+      const nx=clamp(cx,rx,rx+rw), ny=clamp(cy,ry,ry+rh);
+      const dx=cx-nx, dy=cy-ny; return (dx*dx+dy*dy) <= (cr*cr);
+    }
+
+    for(let ei=explosions.length-1; ei>=0; ei--){
+      const exObj = explosions[ei]; exObj.t += dt;
+      const t=exObj.t, r=explosionRadiusAt(t);
+      if(t>EXP_T_EXPAND+EXP_T_SHRINK){ explosions.splice(ei,1); continue; }
+
+      // enemies (circle-rect)
+      for(let k=enemies.length-1;k>=0;k--){
+        const e=enemies[k];
+        const rectW = BODY_W, rectH = BODY_H, rectX = e.cx, rectY = e.y - rectH/2;
+        if (rectX >= 600 || (rectX + rectW) <= 0) continue;
+        if (circleIntersectsRect(exObj.x, exObj.y, r, rectX, rectY, rectW, rectH)) {
+          const hx = rectX + rectW*0.5, hy = rectY + rectH*0.5;
+          const childGen = (exObj.gen || 1) + 1;
+          awardGenIfFirst(exObj.root, childGen);
+          const pts3 = Math.floor(e.score * mult);
+          score += pts3;
+          checkRunHighBroken();
+          spawnPointLabel(hx, hy, pts3);
+          enemies.splice(k,1);
+          spawnExplosion(hx, hy, childGen, exObj.root);
+        }
+      }
+        
+      // mines (circle-circle)
+      const MINE_RADIUS = MINE_HIT_R;
+      for(let k=mines.length-1;k>=0;k--){
+        const m=mines[k]; const dx=m.x-exObj.x, dy=m.y-exObj.y;
+        if ((dx*dx+dy*dy) <= (r+MINE_RADIUS)*(r+MINE_RADIUS)) {
+          const hx = m.x, hy = m.y;
+          const childGen = (exObj.gen || 1) + 1;
+
+          awardGenIfFirst(exObj.root, childGen);
+
+          const pts4 = Math.floor(2 * mult);
+          score += pts4;
+          checkRunHighBroken();
+          spawnPointLabel(hx, hy, pts4);
+
+          mines.splice(k,1);
+          spawnExplosion(hx, hy, childGen, exObj.root);
+        }
+      }
+
+      // player (circle-rect)
+      if(isAlive){
+        const left=ship.x-30, right=ship.x+30, top=ship.y-8, bottom=ship.y;
+        const nx=Math.max(left,Math.min(exObj.x,right));
+        const ny=Math.max(top, Math.min(exObj.y,bottom));
+        const dx=exObj.x-nx, dy=exObj.y-ny;
+        if((dx*dx+dy*dy) <= (r*r)){
+          isAlive = false;
+          onGameOverEnter();
+        }
+      }
+    }
+
+    // horizon danger bursts
+    for(let di=dangerBursts.length-1; di>=0; di--){
+      const db=dangerBursts[di]; db.t += dt;
+      const t=db.t, r=dangerBurstRadiusAt(t);
+      if(t> DANGER_T_EXPAND+DANGER_T_SHRINK){ dangerBursts.splice(di,1); continue; }
+      if(isAlive){
+        const left=ship.x-30, right=ship.x+30, top=ship.y-8, bottom=ship.y;
+        const nx=Math.max(left,Math.min(db.x,right));
+        const ny=Math.max(top, Math.min(db.y,bottom));
+        const dx=db.x-nx, dy=db.y-ny;
+        if((dx*dx+dy*dy) <= (r*r)){
+          isAlive = false;
+          onGameOverEnter();
+        }
+      }
+    }
+
+    // spawn
+    spawnTimer -= dtS*1000;
+    if(spawnTimer<=0){ spawnEnemy(); spawnTimer=nextSpawnInterval(); }
+
+  }
+
+  // ---------- Draw ----------
+  function fmtSecTenths(ms){ return (Math.floor(ms/100)/10).toFixed(1); }
+
+  function drawShip(){
+    ctx.save(); ctx.lineWidth=2; ctx.strokeStyle='#0ff'; ctx.shadowColor='#0ff'; ctx.shadowBlur=14;
+    ctx.fillStyle=ship.color;
+    const sx=ship.x, sy=ship.y;
+    ctx.beginPath(); ctx.moveTo(sx-30,sy); ctx.lineTo(sx+30,sy); ctx.lineTo(sx+45,sy-20); ctx.lineTo(sx-45,sy-20); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx, sy-32); ctx.lineTo(sx-12, sy-20); ctx.lineTo(sx+12, sy-20); ctx.closePath(); ctx.stroke();
+    ctx.restore();
+  }
+  function drawEnemy(e){
+    ctx.save(); ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.shadowColor='#fff'; ctx.shadowBlur=12;
+    const leftCx  = e.cx;
+    const wLine   = BODY_W;
+    const r       = Math.round(BODY_H/2);
+    const topY    = e.y - r;
+    const rightCx = leftCx + wLine;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff';
+    const xCapsule = leftCx - r;
+    const wCapsule = wLine + 2*r;
+    const hCapsule = 2*r;
+    if (typeof ctx.roundRect === 'function') {
+      ctx.beginPath();
+      ctx.roundRect(xCapsule, topY, wCapsule, hCapsule, r);
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(leftCx, topY);
+      ctx.arc(leftCx,  e.y, r, -Math.PI/2,  Math.PI/2, false);
+      ctx.lineTo(rightCx, e.y + r);
+      ctx.arc(rightCx, e.y, r,  Math.PI/2, -Math.PI/2, false);
+      ctx.closePath();
+      ctx.fill();
+    }
+    const domeFrac = (e.dir === 'right') ? 0.75 : 0.25;
+    const topCx    = leftCx + wLine * domeFrac;
+    ctx.lineWidth = 4;
+    const OVER  = 0.75;
+    ctx.beginPath();
+    ctx.arc(topCx, topY - 2 + OVER, 6 + OVER*0.5, Math.PI, 0, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(topCx, topY - 2 + OVER, 6 + OVER*0.5, Math.PI, 0, false);
+    ctx.fill();
+    ctx.restore();
+  }
+  function drawMines(){
+    for(const m of mines){
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = MINE_COLOR;
+      ctx.shadowColor = MINE_COLOR;
+      ctx.shadowBlur  = 12;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, MINE_HIT_R, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.shadowBlur = 12;
+      ctx.fillStyle  = MINE_COLOR;
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, MINE_FILL_R, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  function drawBullets(){
+    for(const b of bullets){
+      const angle = Math.atan2(b.vy, b.vx) + Math.PI/2;
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(angle);
+      ctx.fillStyle   = '#0ff';
+      ctx.shadowColor = '#0ff';
+      ctx.shadowBlur  = 6;
+      ctx.fillRect(-BULLET_W/2, -BULLET_H/2, BULLET_W, BULLET_H);
+      ctx.restore();
+    }
+  }
+  function drawExplosions(){
+    for(const ex of explosions){
+      if(!('gen' in ex)) ex.gen=1;
+      const t=ex.t; if(t>EXP_T_EXPAND+EXP_T_SHRINK) continue;
+      const r=explosionRadiusAt(t);
+      const blink=((Math.floor(t*30)%2)===0);
+      const col=GEN_COLOR(ex.gen);
+      ctx.fillStyle = blink ? hexToRGBA(col,1.0) : hexToRGBA(col,0.0);
+      ctx.beginPath(); ctx.arc(ex.x,ex.y,r,0,Math.PI*2); ctx.fill();
+      ctx.lineWidth=2; ctx.strokeStyle=col; ctx.save(); ctx.shadowColor=col; ctx.shadowBlur=14;
+      ctx.beginPath(); ctx.arc(ex.x,ex.y,r,0,Math.PI*2); ctx.stroke();
+      ctx.restore(); ctx.lineWidth=1;
+    }
+  }
+  function drawDangerBursts(){
+    if(!dangerBursts.length) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, 1200, BURST_Y); ctx.clip();
+    for(const db of dangerBursts){
+      const t=db.t; if(t>DANGER_T_EXPAND+DANGER_T_SHRINK) continue;
+      const r=dangerBurstRadiusAt(t);
+      const blink=((Math.floor(t*30)%2)===0);
+      ctx.fillStyle = blink? 'rgba(255,51,51,1.0)' : 'rgba(255,51,51,0.0)';
+      ctx.strokeStyle='#f33'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(db.x,db.y,r,0,Math.PI*2); ctx.fill();
+      ctx.save(); ctx.shadowColor='#f33'; ctx.shadowBlur=12; ctx.stroke(); ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawTitle(){
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,600,600);
+    pendingHSPersist = false;
+    ctx.save();
+    ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillStyle='#fff';
+    ctx.font='700 18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    ctx.fillText(`PREV: ${prevScore} (x${prevMult})`, 8, 8);
+    ctx.textAlign='right';
+    ctx.fillText(`HIGH: ${hudHighScore} (x${hudHighMult})`, 600-8, 8);
+    ctx.restore();
+
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.fillStyle = '#fff';
+    ctx.font = '900 110px system-ui, Arial Black, Impact, sans-serif';
+    const midY = 570/2;
+    const LINE_GAP = 90;
+    ctx.strokeText('Deep', 600/2, midY - LINE_GAP/2);
+    ctx.fillText('Deep',   600/2, midY - LINE_GAP/2);
+    ctx.strokeText('Command', 600/2, midY + LINE_GAP/2);
+    ctx.fillText('Command',   600/2, midY + LINE_GAP/2);
+
+    ctx.font = '18px system-ui, sans-serif';
+    ctx.fillText('Press Enter / Tap to start', 600/2, 600*0.80);
+
+    ctx.save();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.font = '300 12px system-ui, sans-serif'; ctx.fillStyle = '#fff';
+    const y = 600 - 10;
+    ctx.fillText('A game by Ryo Sato', 10, y);
+    ctx.textAlign = 'center'; ctx.fillText('2025', 600/2, y);
+    ctx.textAlign = 'right'; ctx.fillText('made with ChatGPT', 600-10, y);
+    ctx.restore();
+  }
+
+  function drawPauseOverlay(){
+    if(!paused) return;
+    const W = 600, H = 600;
+    const y = H * 0.50;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 42px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('PAUSED', W/2, y);
+    ctx.restore();
+  }
+
+  function drawGameOverOverlay(){
+    if(!gameOver) return;
+    const W = 600, H = 600;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 88px system-ui, Arial Black, Impact, sans-serif";
+    ctx.fillText("GAME OVER", W/2, H*0.46);
+    ctx.font = "bold 44px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+    const msgGO = "GAME OVER";
+    const wTarget = ctx.measureText(msgGO).width;
+    const leftStr  = `SCORE ${score}`;
+    const rightStr = `MULT x${mult}`;
+    const wL = ctx.measureText(leftStr).width;
+    const wR = ctx.measureText(rightStr).width;
+    let gap = Math.max(28, wTarget - (wL+wR)) + 16;
+    const total = wL + gap + wR;
+    const y = H*0.59;
+    const maxW = Math.floor(W*0.9);
+    if(total > maxW){
+      const sx = maxW / total;
+      ctx.save();
+      ctx.translate(W/2, y);
+      ctx.scale(sx, 1);
+      ctx.textAlign="left";
+      const x0 = - (wL + gap + wR)/2;
+      ctx.fillText(leftStr, x0, 0);
+      ctx.fillText(rightStr, x0 + wL + gap, 0);
+      ctx.restore();
+    } else {
+      const x0 = W/2 - total/2;
+      ctx.textAlign = "left";
+      ctx.fillText(leftStr, x0, y);
+      ctx.fillText(rightStr, x0 + wL + gap, y);
+    }
+    if (runHighBroken) {
+      const blink = ((frames % 20) < 10);
+      if (blink) {
+        const GO_Y = H * 0.40;
+        const HS_Y = GO_Y - 60;
+        ctx.fillStyle = "#f33";
+        ctx.font = "bold 32px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Boom! New High Score!", W/2, HS_Y);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawDurabilityBar(){
+    const W = 600, H = 600, BAR_H = 12;
+    const ratio = Math.max(0, Math.min(1, durNow / DUR_MAX));
+    if(ratio <= 0) return;
+    const barW = Math.round(W * ratio);
+    const x = Math.floor((W - barW) / 2);
+    const y = H - BAR_H;
+    const baseColor = (Math.min(durNow, durTarget) < 3.0) ? '#f10' : '#fff';
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(x, y, barW, BAR_H);
+    if(durColorMode !== 'none' && !gameOver){
+      const el = logicMs - durColorStartMs;
+      const t  = Math.max(0, Math.min(1, el / DUR_TWEEN_MS));
+      const a = 1 - t;
+      const overlay = (durColorMode === 'damage') ? '#f10' : '#0ff';
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = overlay;
+      ctx.fillRect(x, y, barW, BAR_H);
+      ctx.restore();
+      if(t >= 1) durColorMode = 'none';
+    }
+    ctx.save();
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    ctx.fillText('D U R A B I L I T Y', (W/2)|0, (y + (BAR_H/2) + 2)|0);
+    ctx.restore();
+  }
+
+  function draw(){
+    if(state === 'title'){ drawTitle(); return; }
+
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,600,600);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0, HORIZON_Y); ctx.lineTo(600, HORIZON_Y); ctx.stroke();
+
+    drawShip();
+    for(const e of enemies) drawEnemy(e);
+    drawMines();
+    drawBullets();
+    drawExplosions();
+    drawDangerBursts();
+
+    drawTopPopup();
+    drawPointLabels();
+
+    ctx.save();
+    ctx.fillStyle='#fff';
+    ctx.textBaseline='top';
+    ctx.font='700 18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+    ctx.textAlign='left';
+    ctx.fillText(`SCORE: ${score}`, 8, 8);
+    ctx.textAlign='center';
+    // ctx.fillText(fmtSecTenths(Math.max(0, logicMs - runStartMs)), 600/2, 8); // タイマー
+    ctx.textAlign='left';
+    ctx.fillText(`MULT: x${mult}`, 8, 8 + 22);
+    ctx.textAlign='right';
+    ctx.fillText(`HIGH: ${hudHighScore} (x${hudHighMult})`, 600 - 8, 8);
+    ctx.restore();
+
+    if (gameOver) {
+      if (!gameOverShown) {
+        playGameOverSFX();
+        gameOverShown = true;
+      }
+      drawGameOverOverlay();
+    }
+
+    drawPauseOverlay();
+    drawDurabilityBar();
+  }
+
+  function loop(now){
+    const d=now-last; last=now; acc+=d; fpsTimer+=d; frames++;
+    if(fpsTimer>=1000){ fps = frames*(1000/fpsTimer); frames=0; fpsTimer=0; }
+    while(acc>=FRAME_MS){ update(FRAME_MS/1000); acc-=FRAME_MS; }
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(t=>{ last=t; fpsTimer=0; frames=0; requestAnimationFrame(loop); });
+
+  // debug
+  window.DeepCommand = { canvas, ctx };
+})();
+</script>
+</body>
+</html>
