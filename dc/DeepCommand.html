@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Deep Command v1.0.0</title>
+<title>Deep Command</title>
 <style>
   :root{
     color-scheme: dark;
@@ -73,7 +73,7 @@ html.is-mobile-platform .linkBar{
     opacity:0.7;
   }
   
-  :root{ --deep-version: "v1.0.0"; }  /* バージョン表記をここで上書き */
+  :root{ --deep-version: "v1.0.1"; }  /* バージョン表記をここで上書き */
 
   #howtoOverlay .howto-panel{
     position: relative;
@@ -478,9 +478,12 @@ html.audio-mute .audio-icon-svg .icon-slash{
 </style>
 </head>
 <body>
-  <div class="page">
+    <!-- Hidden outbound link for mobile-safe target=_blank navigation -->
+  <a id="rsgOutboundLink" href="https://ryosatoanime.github.io/RSG/index.html" target="_blank" rel="noopener noreferrer"
+     style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;">RSG</a>
+<div class="page">
     <div class="linkBar">
-      <a class="label" href="https://ryosatoanime.github.io/RSG/index.html" target="_blank" rel="noopener noreferrer">
+      <a class="label" href="https://ryosatoanime.github.io/Astrovader/" target="_blank" rel="noopener noreferrer">
         Ryo Sato Games
       </a>
     </div>
@@ -630,8 +633,8 @@ html.audio-mute .audio-icon-svg .icon-slash{
   <div id="howtoOverlay" aria-hidden="true">
     <section class="howto-panel" role="dialog" aria-modal="true" aria-labelledby="howtoTitleEN">
       <h2 class="howto-title en" id="howtoTitleEN">Chase the chain.</h2>
-      <pre class="howto-pre en">Move: A / D (PC)   ◀ ▶ (mobile)
-Shoot: ← ↓ → (PC)   ↙ ↓ ↘(mobile)
+      <pre class="howto-pre en">Move: A / D (PC), ◀ ▶ (mobile)
+Shoot: ← ↓ → (PC), ↙ ↓ ↘(mobile)
 Bigger chains = more MULT & HP
 Misses drain HP
 Mine-miss penalty rises over time.
@@ -649,8 +652,8 @@ Direct hits end the run.
       <div class="howto-footer">Click or Tap to close</div>
     </section>
   </div>
-<script src="sq_audio_core.js"></script>
-<script src="deepcommand_bgm_main.js"></script>
+<script src="sq_audio_core_v0.7.1c.js"></script>
+<script src="deepcommand_bgm_main_v0.3.js"></script>
 <script>
 // deepcommand_bgm_player_min_v0.1e.js
 (function(){
@@ -1036,7 +1039,10 @@ Direct hits end the run.
   const btnTitle = document.getElementById('btnTitle');
   const btnHowto = document.getElementById('btnHowto');
 
-  // === Audio mute states ===
+  
+  // Mobile: prevent "Title -> immediately open RSG link" double-trigger
+  let suppressTitleLinkUntil = 0;
+// === Audio mute states ===
   let audioMode = 0;
   applyAudioModeClass(audioMode);
   let SFXmute = false;
@@ -1969,7 +1975,7 @@ function togglePauseNow(){
             break;
           case 'Enter':
             if (state === 'title') {
-              window.open("https://ryosatoanime.github.io/RSG/index.html", "_blank");
+              // iOS対策：タイトル開始は入力イベント内で直接実行（このタップ/キーでBGMも開始できる）
               startFromTitle();
             } else {
               Actions.startRestart = true;
@@ -2122,13 +2128,27 @@ if (justPressed(9)) { // Start
   }
   
   if (isMobilePlatform && btnTitle) {
+    // 1) In-game: go back to title on pointerdown (fast response), and suppress link-open that can happen on the subsequent click.
     btnTitle.addEventListener('pointerdown', (e) => {
       e.preventDefault();
 
-      if (state === 'title') {
-        window.open("https://ryosatoanime.github.io/Astrovader/", "_blank");
-      } else {
+      if (state !== 'title') {
+        suppressTitleLinkUntil = performance.now() + 700; // swallow the click after returning to title
         Actions.backToTitle = true;
+      }
+    }, { passive:false });
+
+    // 2) On title: open external link on click (more reliable than pointerdown on iOS)
+    btnTitle.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (state !== 'title') return;
+      if (performance.now() < suppressTitleLinkUntil) return;
+
+      const a = document.getElementById('rsgOutboundLink');
+      if (a) {
+        a.click(); // always open in a new tab (or equivalent)
+      } else {
+        window.open("https://ryosatoanime.github.io/RSG/index.html", "_blank", "noopener,noreferrer");
       }
     });
   }
@@ -2713,7 +2733,10 @@ function checkRunHighBroken(){
     if (Actions.backToTitle) {
       persistHSIfBetter();
       
-      hudHighScore = highScore;
+      
+      // Mobile: suppress the click that may follow the "Title" tap
+      suppressTitleLinkUntil = Math.max(suppressTitleLinkUntil, performance.now() + 350);
+hudHighScore = highScore;
       hudHighMult  = highMult;
       
       stopBGM();
