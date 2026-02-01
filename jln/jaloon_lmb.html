@@ -4490,9 +4490,13 @@ function drawGreens(){
     }
   };
 
-  window.addEventListener('pointerdown', forceAudioResume, { passive: true });
-  window.addEventListener('touchstart', forceAudioResume, { passive: true });
-  window.addEventListener('keydown', forceAudioResume, { passive: true });
+  // Resume audio ONLY when interacting with the game canvas (prevents "outside tap resumes audio" on mobile pause).
+  const __cv = document.getElementById('game');
+  if (__cv){
+    __cv.addEventListener('pointerdown', forceAudioResume, { passive: true });
+    __cv.addEventListener('touchstart',  forceAudioResume, { passive: true });
+  }
+  window.addEventListener('keydown', forceAudioResume, { passive: true });  
   
   requestAnimationFrame(loop);
 })();
