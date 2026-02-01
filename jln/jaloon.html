@@ -1,0 +1,4561 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>JALOON</title>
+<style>
+  :root{ color-scheme: dark; --shell-version: "jaloon_v1.0.0"; }
+  html,body{ margin:0; background:#000; color:#fff; font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial, sans-serif; }
+  .page{ display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:12px 0 0 ;}
+  html.is-mobile-platform .page{ padding-top:4px; }
+  
+  :root{
+  color-scheme: dark;
+  --shell-version: "jaloon_v1.0.0";
+  --howto-credit: "© Ryo Sato 2026 /Built with ChatGPT / Music by Gemini";
+  }
+
+
+  /* ===== Link bar (desktop) ===== */
+  .linkBar{
+    width:600px; max-width:100%;
+    margin:6px auto 4px !important;
+    text-align:center; color:#fff;
+  }
+  .linkBar .label{
+    font-family:"Arial Black", Arial, Helvetica, sans-serif;
+    font-weight:900; font-size:16px; line-height:1.1;
+    text-decoration:none; color:#fff;
+    display:inline-block; padding-bottom:9px;
+  }
+  html.is-mobile-platform .linkBar{ display:none; }
+
+  /* ===== Canvas wrap ===== */
+  .mobileScaleRoot{ width:600px; max-width:100%; margin:0 auto; }
+  html.is-mobile-platform .mobileScaleRoot{ width: min(96vmin, 100%, 600px); }
+
+  .stageWrap{
+    width:600px; max-width:100%;
+    margin:6px auto 0;
+    display:flex; justify-content:center;
+  }
+  html.is-mobile-platform .topbar,
+  html.is-mobile-platform .stageWrap,
+  html.is-mobile-platform .pad{ width:100%; }
+
+  canvas#game{
+    width:600px; height:auto;
+    image-rendering: pixelated;
+    background:#000; border:1px solid #fff;
+    display:block; touch-action:none; outline:none;
+  }
+  html.is-mobile-platform canvas#game{ width:100%; height:auto; }
+
+  /* ===== Topbar (mobile) ===== */
+  .topbar{
+    width:600px; max-width:100%;
+    margin:6px auto 8px;
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .square-btn{
+    min-width:64px;
+    padding:10px 16px;
+    background:transparent;
+    border:2px solid #fff;
+    border-radius:10px;
+    color:#fff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    font-weight:800;
+    font-size:16px;
+    letter-spacing:0.03em;
+    cursor:pointer;
+  }
+  html.is-mobile-platform .topbar{ display:flex; gap:8px; }
+  html.is-mobile-platform .topbar button{ flex:0 1 auto; }
+  html.is-mobile-platform .topbar .square-btn{ height:60px; display:flex; align-items:center; justify-content:center; padding:0 14px; }
+  html.is-mobile-platform #btnTitle, html.is-mobile-platform #btnMute{ flex:0 0 56px; aspect-ratio:1/1; }
+  html.is-mobile-platform #btnHowto{ flex:1 1 auto; white-space:nowrap; text-align:center; font-size:16px; }
+
+  /* ===== Desktop controls hint line ===== */
+  #controls{
+    width:600px; max-width:100%;
+    margin:16px auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    white-space:nowrap;
+    font:14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    user-select:none;
+  }
+ 
+  #controls .mini-btn{
+    margin-left:6px;
+    padding:2px 8px;
+    border:1px solid #fff;
+    border-radius:6px;
+    background:#000;
+    color:#fff;
+    font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    cursor:pointer;
+    line-height:1.4;
+  }
+  #controls .mini-btn:active{ transform: translateY(1px); }
+  /* (Removed) UI toggle button (Desktop/Mobile). Use shell-style force flags instead. */
+
+ html.is-mobile-platform #controls{ display:none; }
+
+  /* ===== Mobile pad ===== */
+  .pad{
+    width:600px; max-width:100%;
+    margin:10px auto 0;
+    display:none;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 80px;
+    column-gap:10px;
+    row-gap:0;
+  }
+  html.is-mobile-platform .pad{ display:grid; }
+
+  .pad .half{
+    height:80px;
+    border:2px solid #fff;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    background:transparent;
+    touch-action:manipulation;
+    user-select:none;
+  }
+  .pad .half:active{ transform:translateY(1px); }
+
+  #btnPadMoveL  { grid-column:1; grid-row:1; }
+  #btnPadMoveR  { grid-column:2; grid-row:1; }
+  #btnPadShootL { grid-column:3; grid-row:1; }
+  #btnPadShootR { grid-column:4; grid-row:1; }
+  #btnPadShootD{ display:none; }
+
+  /* move icons */
+  .arrow-move{ display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+  .arrow-move svg{ width:40px; height:40px; }
+  .arrow{ width:44px; height:44px; }
+  .arrow svg{ width:100%; height:100%; stroke:#fff; fill:none; stroke-width:3; transform-origin:50% 50%; }
+  
+  /* pad sprite icons (16x16 -> CSS scaled) */
+  .pad-icon{ display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+  .pad-icon canvas{ width:48px; height:48px; image-rendering: pixelated; image-rendering: crisp-edges; }
+
+  /* ===== Mobile Records text ===== */
+  .mobile-records{
+    width:600px; max-width:100%;
+    margin:10px auto 0;
+    text-align:center;
+    display:none;
+  }
+  html.is-mobile-platform .mobile-records{ display:block; }
+  .mobile-records button{
+    appearance:none;
+    background:transparent;
+    border:0;
+    padding:10px 12px;
+    color:#fff;
+    font-family:"Arial Black", Arial, Helvetica, sans-serif;
+    font-weight:900;
+    font-size:16px;
+    letter-spacing:0.04em;
+    cursor:pointer;
+    touch-action:manipulation;
+    -webkit-touch-callout: none; /* iOS long-press menu */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+  }
+  .mobile-records button:active{ transform: translateY(1px); }
+
+#btnPadShootL .arrow svg{ transform: rotate(45deg) translateX(-1px) translateY(4px); }
+  #btnPadShootD .arrow svg{ transform: translateY(3px); }
+  #btnPadShootR .arrow svg{ transform: rotate(-45deg) translateX(1px) translateY(4px); }
+
+  /* ===== Audio icon system (same class approach) ===== */
+  #audioIconSlot{
+    display:inline-block;
+    position:relative;
+    width:1.4em;
+    height:1.3em;
+    vertical-align:middle;
+  }
+  #audioIconSlot svg{ width:100%; height:100%; display:block; }
+.audio-icon-svg .icon-speaker,
+  .audio-icon-svg .speaker-wave,
+  .audio-icon-svg .icon-note,
+  .audio-icon-svg .icon-slash{ display:none; }
+
+  html.audio-all .audio-icon-svg .icon-speaker{ display:inline; }
+  html.audio-all .audio-icon-svg .speaker-wave{ display:inline; }
+
+  html.audio-bgmoff .audio-icon-svg .icon-note{ display:inline; }
+  html.audio-bgmoff .audio-icon-svg .icon-slash{ display:inline; }
+
+  html.audio-mute .audio-icon-svg .icon-speaker{ display:inline; }
+  html.audio-mute .audio-icon-svg .speaker-wave{ display:inline; }
+  html.audio-mute .audio-icon-svg .icon-slash{ display:inline; }
+
+  .audio-icon-svg .icon-speaker{ transform: translateX(1px); }
+  .audio-icon-svg .icon-note-wrap{ transform: translateX(0px) scaleX(1.25); transform-origin:50% 50%; }
+
+  canvas#game, .square-btn, .pad .half{
+    touch-action:none;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* ===== HowTo overlay ===== */
+  #howtoOverlay{
+    display:none; position:fixed; inset:0; z-index:9999;
+    background: rgba(0,0,0,0.75);
+  }
+  #howtoOverlay .howto-panel{
+    position: fixed;
+    left: 50vw; top: 50vh;
+    transform: translate(-50%,-50%);
+  }
+  .howto-panel{
+    box-sizing:border-box;
+    width:auto;
+    margin:0 auto;
+    background:rgba(0,0,0,0.55);
+    border:2px solid #fff; border-radius:12px;
+    padding:18px 22px 14px;
+  }
+  .howto-title{
+    margin: 0 0 10px;
+    font-family: "Arial Black", Impact, system-ui, sans-serif;
+    text-align:center;
+    line-height:1.05;
+    font-weight:900;
+    overflow-wrap:anywhere;
+  }
+  .howto-title.en{ font-size:21px; }
+  .howto-title.ja{ font-size:18px; margin-top: 18px; }
+
+  .howto-pre{
+    margin: 10px auto 6px;
+    white-space: pre-wrap;
+    line-height:1.45;
+    font-family: system-ui, "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial, sans-serif;
+  }
+  .howto-footer{
+    text-align:center;
+    margin-top: 0;
+    font-size:14px;
+    opacity:0.7;
+  }
+
+  #howtoOverlay .howto-panel{ overflow: visible; }
+  #howtoOverlay .howto-panel::before{
+    content: var(--howto-credit);
+    position: absolute;
+    left: 50%;
+    top: -18px;
+    transform: translateX(-50%);
+    display: block;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1;
+    opacity: .6;
+    pointer-events: none;
+    white-space: nowrap;
+    /* white-space: normal; max-width: 92vw; text-align:center; */
+  }
+  #howtoOverlay .howto-panel::after{
+    content: var(--shell-version);
+    position: absolute;
+    right: 8px;
+    bottom: -18px;
+    display: block;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1;
+    opacity: .6;
+    pointer-events: none;
+  }
+
+  /* PC */
+  @media (pointer: fine) and (min-width:821px){
+    #howtoOverlay{ padding-top:55px; }
+    .howto-panel{ margin:0 auto; width:fit-content; max-width:86vw; }
+    .howto-pre.en, .howto-pre.ja{ font-size:18px; }
+  }
+  /* Mobile */
+  @media (pointer: coarse), (max-width: 820px){
+    .howto-panel{ width:min(89vw, 420px); padding:20px 18px 16px; }
+    .howto-pre.en, .howto-pre.ja{ font-size:16px; }
+  }
+</style>
+  <script type="module">
+    // Load external Font8 (exported from jaloon_font8_editor) and expose it to the main (non-module) script.
+    // Expect file name: heavy8font.js (same folder as this HTML).
+    import { FONT8 as FONT8DATA } from './heavy8font.js';
+    window.__FONT8DATA__ = FONT8DATA;
+  </script>
+
+</head>
+<body>
+  <div class="page">
+    <div class="linkBar">
+      <a class="label" href="https://ryosatoanime.github.io/RSG/index.html" target="_blank" rel="noopener noreferrer">Ryo Sato Games</a>
+    </div>
+
+    <div class="mobileScaleRoot">
+      <div class="topbar">
+        <button id="btnTitle" class="square-btn">Title</button>
+        <button id="btnHowto" class="square-btn">How To Play</button>
+        <button id="btnMute" class="square-btn" aria-label="Mute / Audio">
+          <span class="iconMobileSpeaker" aria-hidden="true">
+            <svg class="audio-icon-svg" viewBox="0 0 24 24" aria-hidden="true" style="width:2.1em; height:2.1em; display:block;">
+              <g class="icon-speaker">
+                <polygon points="4,9 8,9 12,6 12,18 8,15 4,15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M14 9 Q17 12 14 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M16 7 Q21 12 16 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </g>
+              <g class="icon-note-wrap">
+              <g class="icon-note" transform="translate(1 2) scale(0.08)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="22">
+                <circle cx="180" cy="172" r="28"></circle>
+                <circle cx="74" cy="204" r="28"></circle>
+                <polyline points="104 204 104 64 208 32 208 172"></polyline>
+                <polyline points="104 104 208 72"></polyline>
+                </g>
+              </g>
+              <line class="icon-slash" x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <div class="stageWrap">
+        <canvas id="game" width="600" height="600" aria-label="RSG shell game surface"></canvas>
+      </div>
+
+      <div id="controls">
+        <span>
+          [.] : Flap | [,] : Shot | A / D : Move | Space : Pause | H : HowTo | M :
+          <span id="audioIconSlot">
+            <svg class="audio-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+              <g class="icon-speaker">
+                <polygon points="4,9 8,9 12,6 12,18 8,15 4,15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M14 9 Q17 12 14 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M16 7 Q21 12 16 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </g>
+              <g class="icon-note-wrap">
+                <g class="icon-note" transform="translate(1 0) scale(0.08)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="22">
+              <circle cx="180" cy="192" r="28"></circle>
+              <circle cx="68"  cy="224" r="28"></circle>
+              <polyline points="96 224 96 84 208 52 208 192"></polyline>
+              <polyline points="96 124 208 92"></polyline>
+                </g>
+              </g>
+              <line class="icon-slash" x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </span>
+        </span>
+      </div>
+
+      <div class="pad" aria-label="Move & Action pad">
+        <button id="btnPadMoveL" class="half" aria-label="Move Left">
+          <span class="pad-icon" data-sp="btm (lft)" aria-hidden="true"></span>
+        </button>
+        <button id="btnPadMoveR" class="half" aria-label="Move Right">
+          <span class="pad-icon" data-sp="btm (rit)" aria-hidden="true"></span>
+        </button>
+
+        <button id="btnPadShootL" class="half" aria-label="Shoot (S)">
+          <span class="pad-icon" data-sp="btm (arr)" aria-hidden="true"></span>
+        </button>
+        <button id="btnPadShootD" class="half" aria-label="Action Down">
+          <span class="arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><polyline points="4,9 12,17 20,9" /><line x1="12" y1="1" x2="12" y2="17" /></svg>
+          </span>
+        </button>
+        <button id="btnPadShootR" class="half" aria-label="Flap (F)">
+          <span class="pad-icon" data-sp="btm (flap)" aria-hidden="true"></span>
+        </button>
+      </div>
+    
+      <div class="mobile-records" aria-label="Records quick access">
+        <button id="btnRecordsText" type="button">Records</button>
+      </div>
+</div>
+  </div>
+
+  <!-- HowTo Overlay -->
+  <div id="howtoOverlay" aria-hidden="true">
+    <section class="howto-panel" role="dialog" aria-modal="true" aria-labelledby="howtoTitleEN">
+      <h2 class="howto-title en" id="howtoTitleEN">ORBS = SCORE & LIFE</h2>
+      <pre class="howto-pre en">Flap : Period key [.]
+Shot : Comma key [,]
+Move(w/ Flap) : A / D
+Life bars decreases over time.
+Orb raises multiplier and recover life bar(s).
+Yellow +1, Orange +2
+</pre>
+      <h2 class="howto-title ja">オーブ = 得点・生存</h2>
+      <pre class="howto-pre ja">羽ばたき : ピリオド[.]
+射撃 : コンマ[,]
+移動（+羽ばたき）: A / D
+時間経過でライフ減少。
+オーブ取得で得点倍率上昇＋ライフ回復。
+      </pre>
+      <div class="howto-footer">Click or Tap to close</div>
+    </section>
+  </div>
+
+<script src="./sq_audio_core_vNext_hardline_v0.2h.js"></script>
+
+<script type="module">
+import * as SpritePack from "./sprites_pack%20v0.4.js";
+
+(() => {
+
+  // ===== Mobile UI detection (same rules as RSG_Shell_600x600_v0.6a) =====
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
+  const isMobilePlatform = isIOS || isAndroid;
+  if (isMobilePlatform) document.documentElement.classList.add("is-mobile-platform");
+
+  // ============================================================
+  // Jaloon Phase3+: Forced scroll + obstacles + enemies A+B (dev)
+  // - Map scrolls RIGHT at 0.20 dot/frame (fractional accumulate -> integer steps)
+  // - Blocks flow with scroll (jaloon (blc) 0). Hit => bounce at 0.75
+  // - Density: ~3 groups on screen; group size grows 1 -> 3 over time
+  // - Miss if squeezed at RIGHT edge by a scrolling block
+  // ============================================================
+
+  // ----- View canvas (600x600 px) -----
+  const viewCanvas = document.getElementById('game');
+  const viewCtx = viewCanvas.getContext('2d', { alpha:false });
+  viewCtx.imageSmoothingEnabled = false;
+
+  // ----- Dot canvas (200x200 dot) -----
+  const DOT_W = 200;
+  const DOT_H = 200;
+  const SCALE = 3;
+
+  const dotCanvas = document.createElement('canvas');
+  dotCanvas.width = DOT_W;
+  dotCanvas.height = DOT_H;
+  const dotCtx = dotCanvas.getContext('2d', { alpha:false });
+  dotCtx.imageSmoothingEnabled = false;
+
+  const CRT = {
+    enabled: true,   // ← ON / OFF
+    blur: 1,       // にじみ量（0.4〜0.8 推奨）
+    gridAlpha: 0.08, // グリッドの濃さ
+  };
+
+
+    // ------------------------------------------------------------
+  //  PNG (same folder as the HTML)
+  // ------------------------------------------------------------
+  let IMG_TITLE = null;
+  let IMG_GO = null;
+
+  function loadTitlePng(){
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => { IMG_TITLE = img; };
+    img.onerror = () => { IMG_TITLE = null; };
+    img.src = 'jln_title.png';
+  }
+
+  function loadGoPng(){
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => { IMG_GO = img; };
+    img.onerror = () => { IMG_GO = null; };
+    img.src = 'jln_go.png';
+  }
+
+// ============================================================
+  // Overlay State System
+  // ============================================================
+  const OVL = {
+    NONE: 0,
+    PAUSE: 1, // Shows RECORDS / Pause menu
+    HOWTO: 2, // Shows HTML Overlay
+  };
+
+  // State
+  let overlayState = OVL.NONE;
+  let overlayPrevState = OVL.NONE; // HowToを閉じたあとの戻り先記憶用
+
+  function setOverlay(next){
+    if (overlayState === next) return;
+
+    // --- Audio Control ---
+    // オーバーレイに入る時：AudioContextを一時停止（時間を止める）
+    // オーバーレイから完全に出る時：再開
+    if (next !== OVL.NONE && overlayState === OVL.NONE){
+      if (BGM.eng && BGM.eng.ctx && BGM.eng.ctx.state === 'running') {
+        BGM.eng.ctx.suspend().catch(()=>{});
+      }
+    } else if (next === OVL.NONE && overlayState !== OVL.NONE){
+      if (BGM.eng && BGM.eng.ctx && BGM.eng.ctx.state === 'suspended') {
+        BGM.eng.ctx.resume().catch(()=>{});
+      }
+    }
+
+    // --- DOM Control (HowTo) ---
+    const dom = document.getElementById('howtoOverlay');
+    if (dom) {
+      dom.style.display = (next === OVL.HOWTO) ? 'block' : 'none';
+      dom.setAttribute('aria-hidden', (next === OVL.HOWTO) ? 'false' : 'true');
+      if (next === OVL.HOWTO) {
+        requestAnimationFrame(positionHowtoPanelToCanvasCenter);
+      }
+    }
+
+    // --- History Control ---
+    // HowToを開く際、現在の状態（Play or Pause）を記憶する
+    if (next === OVL.HOWTO){
+      overlayPrevState = overlayState;
+    }
+
+    overlayState = next;
+  }
+
+  function positionHowtoPanelToCanvasCenter(){
+    const overlay = document.getElementById('howtoOverlay');
+    if (!overlay || overlayState !== OVL.HOWTO) return;
+
+    const panel = overlay.querySelector('.howto-panel');
+    const canvas = document.getElementById('game');
+    if (!panel || !canvas) return;
+
+    const r = canvas.getBoundingClientRect();
+    const cx = r.left + r.width  * 0.5;
+    const cy = r.top  + r.height * 0.5;
+
+    panel.style.left = cx + 'px';
+    panel.style.top  = cy + 'px';
+  }
+
+  window.addEventListener('resize', ()=>{
+    if (overlayState === OVL.HOWTO) positionHowtoPanelToCanvasCenter();
+  });
+
+  // Tap anywhere on the HowTo overlay to close it (and don't trigger Start/Restart behind it).
+  (()=>{
+    const howtoDom = document.getElementById('howtoOverlay');
+    if (!howtoDom) return;
+    const close = (e)=>{
+      if (overlayState !== OVL.HOWTO) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOverlay(overlayPrevState);
+    };
+    howtoDom.addEventListener('pointerdown', close, { passive:false });
+  })();
+
+  // ============================================================
+  // BGM (SQAE vNext hardline) : GeminiFunk.json
+  // - Starts on the first flap (user gesture) to satisfy iOS/Safari unlock rules.
+  // - Keeps playing across resets (resetGame does not stop BGM).
+  // ============================================================
+  const BGM = {
+    mode: 0, // 0: ALL, 1: BGM OFF, 2: MUTE   (future-proof; Jaloon currently uses BGM only)
+    eng: null,
+    handle: null,
+    bundle: null,        // {song,toneBank,waveBank}
+    loadPromise: null,
+    started: false,
+    bgmGain: 0.55,
+    // --- TunePlayer互換ループ設定 ---
+    // loopStartBeat が数値ならそれを優先。null/undefinedなら loopStartPhrase を使う。
+    // 例) phrase=3 なら (3-1)*8 = 16 beat からループ。
+    loopStartPhrase: 3,
+    loopStartBeat: null,
+  };
+
+
+  function bgmStopNow(){
+    if (BGM.handle && typeof BGM.handle.stop === 'function'){
+      try{ BGM.handle.stop(); }catch(_e){}
+    }
+    BGM.handle = null;
+    BGM.started = false;
+  }
+
+
+  // ============================================================
+  // SFX: lightweight, event-driven one-shots (mono per SFX toneId)
+  // ============================================================
+  const SFX = {
+    // Keep SFX independent from BGM transport, but share the same engine instance.
+    enabled: true,
+    // Tone IDs (injected into merged toneBank on load)
+    TONE_FLAP:      'sfx_flap',
+    TONE_HIT:       'sfx_hit',
+    TONE_SPAWN_B:   'sfx_spawn_b',
+    TONE_BLOCK_HIT: 'sfx_block_hit',
+    TONE_SHOT:      'sfx_shot',
+    TONE_BRK:       'sfx_brk',
+    TONE_ORB:       'sfx_orb',
+    TONE_B_WARN:    'sfx_b_warn',
+    TONE_EN_KILL:   'sfx_en_kill',
+    TONE_BITE_C:    'sfx_c_bite',
+  };
+
+  // Minimal SFX tone defs (Hardline ToneBank schema)
+  // NOTE: SFX tones are "mono" so the same SFX never stacks; it cuts itself.
+  const SFX_TONES = {
+    [SFX.TONE_FLAP]: {
+      id: SFX.TONE_FLAP,
+      osc: { type:'noise', noiseRate: 2000 },
+      env: { attack: 0.001, decay: 0.055, sustain: 0.5, release: 0.09 },
+      filter: { type:'bandpass', freq: 800, q: 2.2 },
+      gain: 0.55,
+      mono: 'mono',
+      monoCutMs: 8
+    },
+    go: {
+      id: 'go',
+      osc: { type:'square', duty: 0.125 },
+      env: { a: 0.005, d: 2, s: 0.65, r: 2 },
+      gain: 0.25,
+      mono: 'mono',
+      filter: { type:'lowpass', freq: 3000, q: 1 }
+    },
+    
+    [SFX.TONE_EN_KILL]: {
+      id: SFX.TONE_EN_KILL,
+      osc: { type: 'square', duty: 0.125 },
+      env: { a: 0.005, d: 0.03, s: 0.65, r: 1 },
+      gain: 0.30,
+      mono: 'mono',
+      monoCutMs: 6
+    },
+    
+    // --- Enemy B spawn (tone 'b') ---
+    [SFX.TONE_SPAWN_B]: {
+      id: SFX.TONE_SPAWN_B,
+      osc: { type: 'sawtooth' },
+      env: { a: 0.005, d: 0.2, s: 0.55, r: 1.5 },
+      gain: 0.25,
+      mono: 'mono',
+      monoCutMs: 8,
+    },
+
+    // --- Enemy B warning beep (indicator sync) ---
+    [SFX.TONE_B_WARN]: {
+      id: SFX.TONE_B_WARN,
+      osc: { type: 'sawtooth' },
+      env: { a: 0.005, d: 0.03, s: 0.65, r: 0.08 },
+      gain: 0.15,
+      mono: 'mono',
+      monoCutMs: 6,
+      pan: 0
+    },
+
+    [SFX.TONE_BITE_C]: {
+      id: SFX.TONE_BITE_C,
+      osc: { type:'noise', noiseRate: 2000 },
+      env: { attack: 0.001, decay: 0.055, sustain: 0.5, release: 0.09 },
+      gain: 0.20,
+      mono: 'mono',
+      monoCutMs: 8
+    },
+
+    // --- Block hit (tone 'bnc') ---
+    [SFX.TONE_BLOCK_HIT]: {
+      id: SFX.TONE_BLOCK_HIT,
+      osc: { type: 'square' },
+      env: { a: 0.005, d: 0.03, s: 0.65, r: 0.08 },
+      gain: 0.15,
+      mono: 'mono',
+      monoCutMs: 10,
+      filter: { type: 'lowpass', freq: 3000, q: 1 }
+    },
+
+    // --- Shot (tone 'arr') ---
+    [SFX.TONE_SHOT]: {
+      id: SFX.TONE_SHOT,
+      osc: { type: 'sawtooth' },
+      env: { a: 0.005, d: 0.05, s: 0.55, r: 0.5 },
+      gain: 0.3,
+      mono: 'mono',
+      monoCutMs: 4,
+      filter: { type: 'highpass', freq: 300, q: 1 }
+    },
+    
+    [SFX.TONE_BRK]: {
+      id: SFX.TONE_BRK,
+      osc: { type:'noise', noiseRate: 2000 },
+      env: { attack: 0.005, decay: 0.1, sustain: 0.5, release: 0.2 },
+      gain: 0.125,
+      mono: 'mono',
+      monoCutMs: 6,
+      filter: { type: 'lowpass', freq: 5000, q: 1 }
+    },
+
+    // --- Orb pickup (yellow/orange share the same tone, mono) ---
+    [SFX.TONE_ORB]: {
+      id: SFX.TONE_ORB,
+      osc: { type: 'square', duty: 0.25 },
+      env: { a: 0.01, d: 0.2, s: 0, r: 0.6 },
+      gain: 0.35,
+      mono: 'mono',
+      monoCutMs: 6,
+      filter: { type: 'highpass', freq: 300, q: 1 }
+    },
+  };
+  
+const GAMEOVER_PHRASE = {
+    version: "sq_phrase_vnext_hardline_v0.3",
+    id: "phr_go_01",
+    phrase: {
+      tempo: 158,
+      defaults: { toneId: "go", v: 1 },
+      events: [
+        // すべての行に toneId: "go" を追加しました
+        { t: 0,    n: 36, d: 0.25, toneId: "go" },
+        { t: 0.25, n: 38, d: 0.25, toneId: "go" },
+        { t: 0.5,  n: 50, d: 0.25, toneId: "go" },
+        { t: 0.75, n: 48, d: 0.25, toneId: "go" },
+        { t: 1,    n: 44, d: 0.25, toneId: "go" },
+        { t: 1.25, n: 36, d: 0.25, toneId: "go" },
+        { t: 1.5,  n: 38, d: 0.25, toneId: "go" },
+      ]
+    },
+    toneBank: {
+      meta: { version: "tonebank_vnext_hardline_v0.1" },
+      tones: {
+        go: {
+          id: "go",
+          osc: { type: "square", duty: 0.125 },
+          env: { a: 0.005, d: 2, s: 0.65, r: 2 },
+          gain: 0.25,
+          mono: "mono",
+          filter: { type: "lowpass", freq: 3000, q: 1 }
+        }
+      }
+    }
+  };
+  
+  const SFX_PHRASES = {
+    
+    enKill: {
+      tempo: 158,
+      events: [
+        { t: 0.00, n: 40, d: 0.25, toneId: SFX.TONE_EN_KILL, v: 1 },
+
+        {
+          t: 0.25, n: 52, d: 0.75, toneId: SFX.TONE_EN_KILL, v: 1,
+          fx: { pitch: { mode:'cents', curve:'lin', to: -1200, time: 0.7 } }
+        }
+      ]
+    },
+
+    enKillChain: {
+      tempo: 158,
+      events: [
+        {
+          t: 0.00, n: 55, d: 0.75, toneId: SFX.TONE_EN_KILL, v: 1,
+          fx: { pitch: { mode:'cents', curve:'lin', to: -1200, time: 0.7 } }
+        }
+      ]
+    },
+    
+    spawnB: {
+      tempo: 158,
+      events: [
+        {
+          t: 0, n: 48, d: 1,
+          toneId: SFX.TONE_SPAWN_B, v: 1,
+          fx: { pitch: { mode:'cents', curve:'lin', to: 400, time: 1.5 } }
+        }
+      ],
+      fxDefaults: {
+        pitch: { mode:'cents', curve:'lin', to: 400, time: 1.5 }
+      }
+    },
+    
+    bWarn: {
+      tempo: 158,
+      events: [
+        { t: 0, n: 52, d: 0.25, toneId: SFX.TONE_B_WARN, v: 1 }
+      ]
+    },
+
+    biteC: {
+      tempo: 158,
+      events: [
+        { t: 0, n: 60, d: 0.25, toneId: SFX.TONE_BITE_C, v: 1 }
+      ]
+    },
+
+
+    blockHit: {
+      tempo: 158,
+      events: [
+        {
+          t: 0, n: 48, d: 0.25,
+          toneId: SFX.TONE_BLOCK_HIT, v: 1,
+          fx: { pitch: { mode:'cents', curve:'lin', to: -1200, time: 0.1 } }
+        }
+      ],
+      fxDefaults: {
+        pitch: { mode:'cents', curve:'lin', to: -1200, time: 0.1 }
+      }
+    },
+
+    shot: {
+      tempo: 158,
+      events: [
+        {
+          t: 0, n: 57, d: 0.5,
+          toneId: SFX.TONE_SHOT, v: 1,
+          fx: { pitch: { mode:'cents', curve:'lin', to: -1800, time: 0.2 } }
+        }
+      ],
+      fxDefaults: {
+        pitch: { mode:'cents', curve:'lin', to: -1800, time: 0.2 }
+      }
+    },
+    
+    brk: {
+      tempo: 158,
+      events: [
+        { t: 0, n: 60, d: 0.15, toneId: SFX.TONE_BRK, v: 1 }
+      ]
+    },
+
+    orbYellow: {
+      tempo: 120,
+      events: [
+        {
+          t: 0, n: 69, d: 0.5, toneId: SFX.TONE_ORB, v: 1,
+          fx: { pitch: { mode:'cents', curve:'lin', to: 1200, time: 0.2 } }
+        }
+      ],
+      fxDefaults: {
+        pitch: { mode:'cents', curve:'lin', to: 1200, time: 0.2 }
+      }
+    },
+
+    orbOrange: {
+      tempo: 120,
+      events: [
+        {
+          t: 0, n: 72, d: 0.5, toneId: SFX.TONE_ORB, v: 1,
+          fx: { pitch: { mode:'cents', curve:'lin', to: 1200, time: 0.2 } }
+        }
+      ],
+      fxDefaults: {
+        pitch: { mode:'cents', curve:'lin', to: 1200, time: 0.2 }
+      }
+    },
+  };
+
+  function sfxPlayPhrase(phrase){
+    if (!SFX.enabled) return;
+    const eng = BGM.eng;
+    if (!eng || BGM.mode === 2) return; // MUTE
+
+    const tStart = eng.ctx.currentTime + 0.01;
+
+    try{
+      eng.playPhrase(phrase, {
+        t: tStart,
+        tempo: phrase.tempo,
+        loop: false,
+        busKey: 'sfx',
+      });
+    }catch(_e){}
+  }
+
+  function sfxEnemyKill(){      sfxPlayPhrase(SFX_PHRASES.enKill); }
+  function sfxEnemyKillChain(){ sfxPlayPhrase(SFX_PHRASES.enKillChain); }
+  function sfxSpawnEnemyB(){ sfxPlayPhrase(SFX_PHRASES.spawnB); }
+  function sfxBiteC(){ sfxPlayPhrase(SFX_PHRASES.biteC); }
+  function sfxBlockHit(){   sfxPlayPhrase(SFX_PHRASES.blockHit); }
+  function sfxShot(){       sfxPlayPhrase(SFX_PHRASES.shot); }
+  function sfxBreak(){ sfxPlayPhrase(SFX_PHRASES.brk); }
+  function sfxOrbYellow(){ sfxPlayPhrase(SFX_PHRASES.orbYellow); }
+  function sfxOrbOrange(){ sfxPlayPhrase(SFX_PHRASES.orbOrange); }
+  function sfxEnemyBWarn(){ sfxPlayPhrase(SFX_PHRASES.bWarn); }
+  
+  
+  function mergeToneBankWithSfx(toneBank){
+    const tb = toneBank && typeof toneBank === 'object' ? toneBank : { meta:{}, tones:{} };
+    const tones = Object.assign({}, tb.tones || {});
+    for (const [k, v] of Object.entries(SFX_TONES)){
+      tones[k] = v;
+    }
+    return { meta: tb.meta || {}, tones };
+  }
+
+  function ensureSfxBus(eng){
+    if (!eng) return;
+    try{
+      if (!eng.buses || !eng.buses.has || !eng.buses.has('sfx')){
+        eng.createBus('sfx', { gain: 1.00, pan: 0 });
+      }
+    }catch(_e){}
+  }
+
+  function sfxPlayFlap(){
+    if (!SFX.enabled) return;
+    const eng = BGM.eng;
+    if (!eng || BGM.mode === 2) return; // MUTE
+    if (BGM.mode === 1) {
+    }
+    try{
+      eng.playNote({
+        toneId: SFX.TONE_FLAP,
+        n: 60,
+        dSec: 0.14,
+        v: 0.90,
+        busKey: 'sfx',
+        fx: { flt: { from: 2400, to: 650, time: 0.10, curve: 'exp', q: 2.2, type: 'bandpass' } }
+      });
+    }catch(_e){}
+  }
+
+  function playGameOverPhrase(){
+    const eng = BGM.eng;
+    if (!eng || BGM.mode === 2) return;
+    
+    const tStart = eng.ctx.currentTime + 0.03;
+    
+    try{
+      eng.playPhrase(GAMEOVER_PHRASE.phrase, {
+        t: tStart,
+        tempo: GAMEOVER_PHRASE.phrase.tempo,
+        loop: false,
+        busKey: 'sfx',
+      });
+    }catch(e){
+      console.warn('GameOver phrase failed', e);
+    }
+  }
+
+
+function applyAudioModeCss(){
+    const root = document.documentElement;
+    root.classList.remove('audio-all','audio-bgmoff','audio-mute');
+    root.classList.add(BGM.mode===0 ? 'audio-all' : (BGM.mode===1 ? 'audio-bgmoff' : 'audio-mute'));
+  }
+
+  function updateAudioVolumes(){
+    const eng = BGM.eng;
+    if (!eng) return;
+
+    // Mode 0: ALL      (Master=1.0, BGM Bus=Gain)
+    // Mode 1: BGM OFF  (Master=1.0, BGM Bus=0.0)
+    // Mode 2: MUTE     (Master=0.0)
+
+    // 1. Master Gain
+    const masterVol = (BGM.mode === 2) ? 0.0 : 1.0;
+    if (typeof eng.setMasterGain === 'function') eng.setMasterGain(masterVol);
+
+    // 2. BGM Bus Gain
+    if (BGM.bundle && BGM.bundle.song){
+        const targetBgmVol = (BGM.mode === 0) ? Math.max(0, Math.min(1, Number(BGM.bgmGain))) : 0.0;
+        
+        for (const tr of (BGM.bundle.song.tracks || [])){
+            const k = tr?.busKey;
+            if (!k) continue;
+            if (k === 'master' || k === 'sfx') continue;
+            try { eng.setBusGain(k, targetBgmVol); } catch(_e){}
+        }
+    }
+  }
+
+  function setAudioMode(next){
+    BGM.mode = (next|0) % 3;
+    applyAudioModeCss();
+    updateAudioVolumes();
+  }
+
+  function bgmLoadBundle(){
+    if (BGM.bundle) return Promise.resolve(BGM.bundle);
+    if (BGM.loadPromise) return BGM.loadPromise;
+    BGM.loadPromise = fetch('./GeminiFunk.json', {cache:'no-store'})
+      .then(r=>{ if(!r.ok) throw new Error('BGM fetch failed: '+r.status); return r.json(); })
+      .then(j=>{ BGM.bundle = j; return j; });
+    return BGM.loadPromise;
+  }
+
+  async function bgmEnsureEngine(bundle){
+    if (BGM.eng) return BGM.eng;
+    if (!window.SQAE || !SQAE.create) throw new Error('SQAE core not loaded');
+
+    const eng = SQAE.create({
+      latencyHint: 'interactive',
+      lookaheadSec: 0.12,
+      intervalMs: 25,
+    });
+
+    await eng.unlock();
+
+    const used = new Set(['master']);
+    for (const tr of (bundle.song?.tracks || [])){
+      if (tr && tr.busKey) used.add(tr.busKey);
+    }
+    for (const k of used){
+      if (!eng.buses || !eng.buses.has || !eng.buses.has(k)){
+        try{ eng.createBus(k, {gain: 1.0, pan: 0}); }catch(_e){}
+      }
+    }
+
+    ensureSfxBus(eng);
+
+    const mergedToneBank = mergeToneBankWithSfx(bundle.toneBank);
+    eng.loadBanks({ toneBank: mergedToneBank, waveBank: bundle.waveBank });
+
+    try{
+      const g = Math.max(0, Math.min(1, Number(BGM.bgmGain)));
+      for (const tr of (bundle.song?.tracks || [])){
+        const k = tr?.busKey;
+        if (!k) continue;
+        if (k === 'master' || k === 'sfx') continue;
+        if (typeof eng.setBusGain === 'function') eng.setBusGain(k, g);
+      }
+    }catch(_e){}
+
+    eng.setMasterGain(1.0);
+    BGM.eng = eng;
+    return eng;
+  }
+
+  function bgmStartOnce(){
+    if (BGM.started) return;
+
+    bgmLoadBundle()
+      .then(async (bundle)=>{
+        const eng = await bgmEnsureEngine(bundle);
+        
+        updateAudioVolumes();
+
+        if (BGM.started) return;
+
+        const phraseLenBeats = 8;
+        const loopStartPhrase = (BGM.loopStartPhrase|0) > 0 ? (BGM.loopStartPhrase|0) : 1;
+        const loopStartBeat = (typeof BGM.loopStartBeat === "number" && isFinite(BGM.loopStartBeat))
+          ? Math.max(0, BGM.loopStartBeat)
+          : (loopStartPhrase - 1) * phraseLenBeats;
+
+        let maxT = 0;
+        for (const tr of (bundle.song?.tracks || [])){
+          for (const ev of (tr?.events || [])){
+            const t = (typeof ev.t === "number") ? ev.t : 0;
+            if (t > maxT) maxT = t;
+          }
+        }
+        let loopEndFinal = 128;
+        const loop = { start: loopStartBeat, end: loopEndFinal };
+        BGM.handle = eng.playSong(bundle.song, { loop });
+        BGM.started = true;
+      })
+      .catch((e)=>{
+        console.warn('[Jaloon] BGM start failed', e);
+      });
+  }
+
+  // Wire the shell's 3-state toggle (button + "M" key).
+  applyAudioModeCss();
+  const btnMute = document.getElementById('btnMute')
+  ;
+  if (btnMute){
+    btnMute.addEventListener('click', ()=> setAudioMode((BGM.mode + 1) % 3));
+  }
+
+
+  // ----- Playfield constants (dot) -----
+  // HUD: top 8dot, game area height 184dot, horizontal margins 4dot (L/R).
+  const HUD_H = 8;
+  const M = 4;
+  const HUD_Y = M;
+  const FIELD_W = 192;
+  const FIELD_H = 184;
+
+  // ----- HUD (Phase 6) -----
+  // Minimal 8x8 bitmap font (digits + 'x') for pixel-perfect HUD.
+  // NOTE: This is intentionally tiny: HUD uses only score digits and Mult like "x32".
+    // ===== FONT8 renderer =====
+  // Uses external font data if available (exported as: export const FONT8 = {...} from jaloon_font8_editor).
+  // Fallbacks to a tiny built-in font (digits + x) if heavy8font.js is not present.
+  const FONT8 = (() => {
+    /** @type {{meta?:any, glyphs: Record<string, number[]>}} */
+    const ext = (typeof window !== 'undefined' && window.__FONT8DATA__ && window.__FONT8DATA__.glyphs) ? window.__FONT8DATA__ : null;
+
+    // Built-in fallback glyphs (8 bytes per glyph, bit7=left .. bit0=right)
+    /** @type {Record<string, number[]>} */
+    const g = {};
+    const A = (rows)=>rows.map(v=>v&0xFF);
+
+    g['0']=A([0x3C,0x66,0x6E,0x76,0x66,0x66,0x3C,0x00]);
+    g['1']=A([0x18,0x38,0x18,0x18,0x18,0x18,0x3C,0x00]);
+    g['2']=A([0x3C,0x66,0x06,0x0C,0x18,0x30,0x7E,0x00]);
+    g['3']=A([0x3C,0x66,0x06,0x1C,0x06,0x66,0x3C,0x00]);
+    g['4']=A([0x0C,0x1C,0x3C,0x6C,0x7E,0x0C,0x0C,0x00]);
+    g['5']=A([0x7E,0x60,0x7C,0x06,0x06,0x66,0x3C,0x00]);
+    g['6']=A([0x1C,0x30,0x60,0x7C,0x66,0x66,0x3C,0x00]);
+    g['7']=A([0x7E,0x66,0x06,0x0C,0x18,0x18,0x18,0x00]);
+    g['8']=A([0x3C,0x66,0x66,0x3C,0x66,0x66,0x3C,0x00]);
+    g['9']=A([0x3C,0x66,0x66,0x3E,0x06,0x0C,0x38,0x00]);
+    g['x']=A([0x00,0x00,0x66,0x3C,0x18,0x3C,0x66,0x00]);
+    g[' ']=A([0,0,0,0,0,0,0,0]);
+    g['?']=A([0x3C,0x66,0x06,0x0C,0x18,0x00,0x18,0x00]);
+
+    const glyphs = ext ? ext.glyphs : g;
+    const W = (ext && ext.meta && ext.meta.w) ? (ext.meta.w|0) : 8;
+    function adv(ch){
+      // digits + 'x' => 7dot advance
+      if ((ch >= '0' && ch <= '9') || ch === 'x') return 7;
+      return W; // default 8
+    }
+
+    const H = (ext && ext.meta && ext.meta.h) ? (ext.meta.h|0) : 8;
+
+    // --- Glyph cache: render each character once to an offscreen canvas, then blit with drawImage.
+    // This avoids per-dot fillRect calls in the hot path.
+    /** @type {Map<string, HTMLCanvasElement>} */
+    const _glyphCache = new Map();
+    function _getGlyphCanvas(ch, color){
+      const key = ch + '|' + color;
+      const hit = _glyphCache.get(key);
+      if (hit) return hit;
+
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const cctx = c.getContext('2d');
+      if (!cctx) return c;
+
+      cctx.fillStyle = color;
+      const rows = glyphs[ch] || glyphs['?'] || glyphs[' '];
+      if (rows){
+        for (let ry=0; ry<H; ry++){
+          const bits = rows[ry] || 0;
+          for (let rx=0; rx<W; rx++){
+            if (bits & (0x80 >> rx)) cctx.fillRect(rx, ry, 1, 1);
+          }
+        }
+      }
+      _glyphCache.set(key, c);
+      return c;
+    }
+
+    function measure(txt, spacing=1){
+      if (!txt) return 0;
+      let w = 0;
+      for (let i=0; i<txt.length; i++){
+        w += adv(txt[i]);
+        if (i !== txt.length - 1) w += spacing;
+      }
+      return w;
+    }
+
+    function draw(ctx, txt, x, y, color='#fff', spacing=1){
+      if (!txt) return;
+      ctx.save();
+      for (let i=0;i<txt.length;i++){
+        const ch = txt[i];
+        const gc = _getGlyphCanvas(ch, color);
+        ctx.drawImage(gc, x, y);
+        x += adv(ch) + spacing;
+      }
+      ctx.restore();
+    }
+
+    return { glyphs, w: W, h: H, measure, draw };
+  })();
+;
+
+  const HUD = {
+    score: 0,
+    mult: 1,
+    timeSec: 0,
+    // scoring constants (temporary/prototype)
+    orbBase: 10,     // base points per orb before multiplier
+    multCap: 999,
+  };
+
+// ============================================================
+// Records (Top 5): score-based, stores score + mult
+// ============================================================
+  const RECORDS = {
+    key: 'jaloon_records_v1',
+    max: 5,
+    list: /** @type {{score:number, mult:number, at:string}[]} */ ([]),
+  };
+
+function recordsLoad(){
+  try{
+    const raw = localStorage.getItem(RECORDS.key);
+    if (!raw) { RECORDS.list = []; return; }
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) { RECORDS.list = []; return; }
+    RECORDS.list = arr
+      .map(o => ({
+        score: (o && typeof o.score === 'number') ? (o.score|0) : 0,
+        mult:  (o && typeof o.mult  === 'number') ? (o.mult|0)  : 1,
+        at:    (o && typeof o.at    === 'string') ? o.at : '',
+      }))
+      .filter(o => o.score > 0)
+      .slice(0, 50); // 念のため上限
+  } catch(e){
+    RECORDS.list = [];
+  }
+}
+
+  function recordsSave(){
+    try{
+      localStorage.setItem(RECORDS.key, JSON.stringify(RECORDS.list.slice(0, RECORDS.max)));
+    } catch(e){}
+  }
+
+  function recordsMaybeAdd(score, mult){
+    score = score|0;
+    mult  = mult|0;
+    if (score <= 0) return false;
+
+    const prevTop = RECORDS.list[0] || null;
+    const prevScore = prevTop ? (prevTop.score|0) : -1;
+    const prevMult  = prevTop ? (prevTop.mult|0)  : -1;
+
+    const entry = { score, mult: Math.max(1, mult), at: new Date().toISOString() };
+    const arr = RECORDS.list.slice();
+    arr.push(entry);
+
+    arr.sort((a,b)=> (b.score - a.score) || (b.mult - a.mult) || ((b.at||'').localeCompare(a.at||'')));
+
+    RECORDS.list = arr.slice(0, RECORDS.max);
+    recordsSave();
+
+    // "今回の記録が、更新としてトップに立った" だけ true
+    const improved = (entry.score > prevScore) || (entry.score === prevScore && entry.mult > prevMult);
+    return improved && (RECORDS.list[0] === entry);
+  }
+
+  // ----- Life Meter (Hybrid motivation) -----
+  // 30 bars, each represents 2 seconds => 60 seconds full.
+  const LIFE = {
+    max: 30,
+    v: 30,
+    decayFrames: 120, // 2 sec @ 120fps
+    acc: 0,
+
+    // visuals (dot)
+    frameW: 63,
+    frameH: 7,
+    barW: 1,
+    barH: 3,
+    gap: 1,
+    barColor: '#ffff00',
+    frameColor: '#fff',
+  };
+
+  function lifeReset(){
+    LIFE.v = LIFE.max;
+    LIFE.acc = 0;
+  }
+
+  function lifeAdd(n=1){
+    LIFE.v = Math.min(LIFE.max, LIFE.v + (n|0));
+  }
+
+  function lifeStep(){
+    LIFE.acc++;
+    while (LIFE.acc >= LIFE.decayFrames){
+      LIFE.acc -= LIFE.decayFrames;
+      LIFE.v--;
+      if (LIFE.v <= 0){
+        LIFE.v = 0;
+        gameOver();
+        return;
+      }
+    }
+  }
+
+  function drawLifeMeter(ctx = dotCtx){
+    const W = LIFE.frameW|0, H = LIFE.frameH|0;
+    const x = ((DOT_W - W) / 2) | 0;
+    const y = HUD_Y; // within HUD area (top aligned)
+
+    // frame (1dot white)
+    ctx.fillStyle = LIFE.frameColor;
+    ctx.fillRect(x, y, W, 1);
+    ctx.fillRect(x, y + H - 1, W, 1);
+    ctx.fillRect(x, y, 1, H);
+    ctx.fillRect(x + W - 1, y, 1, H);
+
+    // bars (deplete from left, remain on right)
+    const innerX = x + 1;
+    const innerY = y + 1;
+    const innerW = W - 2;
+    const innerH = H - 2;
+
+    const totalBarsW = LIFE.max * LIFE.barW + (LIFE.max - 1) * LIFE.gap; // 59
+    const sx = innerX + (((innerW - totalBarsW) / 2) | 0);
+    const sy = innerY + (((innerH - LIFE.barH) / 2) | 0);
+
+    const depleted = LIFE.max - LIFE.v; // left side empty
+    ctx.fillStyle = LIFE.barColor;
+    for (let i=0; i<LIFE.max; i++){
+      if (i < depleted) continue;
+      const bx = sx + i * (LIFE.barW + LIFE.gap);
+      ctx.fillRect(bx, sy, LIFE.barW, LIFE.barH);
+    }
+  }
+function addScoreFromOrb(kind=0){
+    // Orbs do NOT grant score.
+    // Yellow orb (kind=0): Mult +1, Life +1
+    // Orange orb (kind=1): Mult +2, Life +2
+    const dMult = (kind === 1) ? 2 : 1;
+    const dLife = (kind === 1) ? 2 : 1;
+
+    HUD.mult = Math.min(HUD.mult + dMult, HUD.multCap);
+    lifeAdd(dLife);
+  }
+
+  function addScoreFromEnemyA(){
+    // Enemy A: 1pt (multiplied by current Mult)
+    HUD.score += 1 * Math.max(1, HUD.mult);
+  }
+
+  function addScoreFromEnemyB(){
+    // Enemy B: 2pt (multiplied by current Mult)
+    HUD.score += 2 * Math.max(1, HUD.mult);
+  }
+
+  // ----- HUD cache (redraw only when values change) -----
+  const _hudCache = (() => {
+    const c = document.createElement('canvas');
+    c.width = DOT_W;
+    const H = Math.min(DOT_H, (HUD_Y + HUD_H + 2) | 0); // HUD + padding (dev timer removed)
+    c.height = H;
+    const ctx = c.getContext('2d');
+    return { c, ctx, key: '' };
+  })();
+
+  
+function drawTitleScreen(){
+  titleFrame++;
+
+  // Background / Title image
+  if (IMG_TITLE){
+    dotCtx.drawImage(IMG_TITLE, 4, 0);
+  } else {
+    dotCtx.fillStyle = '#000';
+    dotCtx.fillRect(0, 0, DOT_W, DOT_H);
+  }
+
+  const l1 = 'ENTER/TAP';
+  const w1 = FONT8.measure(l1, 1);
+  const x1 = ((DOT_W - w1) / 2) | 0;
+  FONT8.draw(dotCtx, l1, x1, 148, '#fff', 1);
+  
+  //const rights = 'RYO SATO 2026';
+  //const wr = FONT8.measure(rights, 1);
+  //FONT8.draw(dotCtx, rights, (DOT_W - wr) / 2 | 0, 4, '#fff', 1);
+  }
+
+
+
+function drawHUD(){
+    const key = (HUD.score|0) + '|' + (HUD.mult|0) + '|' + (LIFE.v|0);
+
+    if (key !== _hudCache.key){
+      _hudCache.key = key;
+      const hctx = _hudCache.ctx;
+      if (hctx){
+        hctx.clearRect(0,0,_hudCache.c.width,_hudCache.c.height);
+
+        // left: score
+        const sScore = String(HUD.score|0);
+        FONT8.draw(hctx, sScore, M, HUD_Y, '#fff', 1);
+
+        // center: life meter
+        drawLifeMeter(hctx);
+        
+        // right: mult like "x32" (right-aligned in the HUD)
+        const sMult = 'x' + String(HUD.mult|0);
+        const w = FONT8.measure(sMult, 1);
+        const x = (DOT_W - M - w) | 0;
+        FONT8.draw(hctx, sMult, x, HUD_Y, '#fff', 1);
+      } else {
+        // If offscreen canvas isn't available, fall back to immediate mode (shouldn't happen).
+        const sScore = String(HUD.score|0);
+        FONT8.draw(dotCtx, sScore, M, HUD_Y, '#fff', 1);
+        drawLifeMeter(dotCtx);
+        const sMult = 'x' + String(HUD.mult|0);
+        const w = FONT8.measure(sMult, 1);
+        const x = (DOT_W - M - w) | 0;
+        FONT8.draw(dotCtx, sMult, x, HUD_Y, '#fff', 1);
+        return;
+      }
+    }
+
+    // Blit cached HUD every frame (cheap)
+    dotCtx.drawImage(_hudCache.c, 0, 0);
+  }
+
+function drawRecordsOverlay(){
+
+  // 暗幕
+  dotCtx.save();
+  dotCtx.globalAlpha = 0.75;
+  dotCtx.fillStyle = '#000';
+  dotCtx.fillRect(X_MIN, Y_MIN, FIELD_W, FIELD_H);
+  dotCtx.globalAlpha = 1;
+
+  const title = 'RECORDS';
+  const scale = 1;
+  const w = FONT8.measure(title, 1);
+  const x0 = (X_MIN + ((FIELD_W - w) / 2)) | 0;
+  const y0 = (Y_MIN + 32) | 0;
+  FONT8.draw(dotCtx, title, x0, y0, '#fff', 1);
+
+  const yList = y0 + 24;
+  const xRank = X_MIN + 40;
+  const xScore = X_MIN + 56;
+  const xMult = X_MIN + 117;
+
+  for (let i=0; i<RECORDS.max; i++){
+    const e = RECORDS.list[i];
+    const yy = yList + i * 14;
+
+    const rank = String(i+1) + '.';
+    FONT8.draw(dotCtx, rank, xRank, yy, '#fff', 1);
+
+    if (e){
+      FONT8.draw(dotCtx, String(e.score|0), xScore, yy, '#fff', 1);
+      FONT8.draw(dotCtx, 'x' + String(e.mult|0), xMult, yy, '#fff', 1);
+    } else {
+      FONT8.draw(dotCtx, '---', xScore, yy, '#fff', 1);
+    }
+  }
+
+  dotCtx.restore();
+}
+
+
+  const PLAYER_W = 16;
+  const PLAYER_H = 16;
+
+  // Player hitbox
+  const PLAYER_HIT = { ox: 1, oy: 6, w: 11, h: 8 };
+
+  const X_MIN = M;
+  const X_MAX = M + FIELD_W - PLAYER_W;
+  const Y_MIN = HUD_Y + HUD_H;
+  const Y_MAX = Y_MIN + FIELD_H - PLAYER_H;
+  const RIGHT_WALL_X = M + FIELD_W; // world right boundary (x + w)
+
+  // ----- World: obstacle blocks -----
+  const BLOCK_W = 8;
+  const BLOCK_H = 8;
+  const BOUNCE = 0.75;
+
+  /** @type {{x:number,y:number,w:number,h:number,gid:number}[]} */
+  const blocks = [];
+  let nextGid = 1;
+
+  // ----- World: spike blocks (instant MISS on touch) -----
+  const SPIKE_W = 8;
+  const SPIKE_H = 8;
+  const SPIKE_HIT = { ox: 1, oy: 1, w: 7, h: 7 };
+
+  const SPIKE_CLEAR = 8; // keep at least 8dot distance from blocks/enemies at spawn
+
+  /** @type {{x:number,y:number,w:number,h:number,gid:number}[]} */
+  const spikes = [];
+  let nextSid = 1;
+
+  // ----- Spatial grid (8x8 cells): used to accelerate Arrow/Debris vs Block/Spike collision -----
+  // We rebuild the occupancy each frame (O(n) with small n), then queries only touch nearby cells.
+  const CELL = 8;
+  const GRID_W = Math.ceil(DOT_W / CELL) | 0;
+  const GRID_H = Math.ceil(DOT_H / CELL) | 0;
+
+  /** @type {Int16Array}  cell -> block index (or -1) */
+  const _gridBlock = new Int16Array(GRID_W * GRID_H);
+  /** @type {Int16Array}  cell -> spike index (or -1) */
+  const _gridSpike = new Int16Array(GRID_W * GRID_H);
+
+  function _gridClear(){
+    _gridBlock.fill(-1);
+    _gridSpike.fill(-1);
+  }
+
+  function _cellIndex(cx, cy){ return cx + cy * GRID_W; }
+
+  function _clampCellX(cx){ return cx < 0 ? 0 : (cx >= GRID_W ? (GRID_W - 1) : cx); }
+  function _clampCellY(cy){ return cy < 0 ? 0 : (cy >= GRID_H ? (GRID_H - 1) : cy); }
+
+  function _rebuildSolidGrid(){
+    _gridClear();
+
+    // Blocks (8x8)
+    for (let i = 0; i < blocks.length; i++){
+      const b = blocks[i];
+      if (!rectIntersectsPF(b.x, b.y, b.w, b.h)) continue;
+      const cx = _clampCellX((b.x / CELL) | 0);
+      const cy = _clampCellY((b.y / CELL) | 0);
+      const gi = _cellIndex(cx, cy);
+      if (_gridBlock[gi] === -1) _gridBlock[gi] = i; // keep first if somehow duplicated
+    }
+
+    // Spikes (8x8)
+    for (let i = 0; i < spikes.length; i++){
+      const s = spikes[i];
+      if (!rectIntersectsPF(s.x + SPIKE_HIT.ox, s.y + SPIKE_HIT.oy, SPIKE_HIT.w, SPIKE_HIT.h)) continue;
+      const cx = _clampCellX((s.x / CELL) | 0);
+      const cy = _clampCellY((s.y / CELL) | 0);
+      const gi = _cellIndex(cx, cy);
+      if (_gridSpike[gi] === -1) _gridSpike[gi] = i;
+    }
+  }
+
+  function _cellsForRect(x, y, w, h){
+    const cx0 = _clampCellX((x / CELL) | 0);
+    const cy0 = _clampCellY((y / CELL) | 0);
+    const cx1 = _clampCellX(((x + w - 1) / CELL) | 0);
+    const cy1 = _clampCellY(((y + h - 1) / CELL) | 0);
+    return { cx0, cy0, cx1, cy1 };
+  }
+
+  function _hitSpikeFast(x, y, w, h){
+    const c = _cellsForRect(x, y, w, h);
+    for (let cy = c.cy0; cy <= c.cy1; cy++){
+      let row = cy * GRID_W;
+      for (let cx = c.cx0; cx <= c.cx1; cx++){
+        const si = _gridSpike[row + cx];
+        if (si < 0) continue;
+        const s = spikes[si];
+        if (!s) continue;
+        if (rectsOverlap(x, y, w, h,
+          s.x + SPIKE_HIT.ox, s.y + SPIKE_HIT.oy, SPIKE_HIT.w, SPIKE_HIT.h
+        )) return true;
+      }
+    }
+    return false;
+  }
+
+  function _hitBlockFast(x, y, w, h){
+    const c = _cellsForRect(x, y, w, h);
+    for (let cy = c.cy0; cy <= c.cy1; cy++){
+      let row = cy * GRID_W;
+      for (let cx = c.cx0; cx <= c.cx1; cx++){
+        const bi = _gridBlock[row + cx];
+        if (bi < 0) continue;
+        const b = blocks[bi];
+        if (!b) continue;
+        if (rectsOverlap(x, y, w, h, b.x, b.y, b.w, b.h)) return true;
+      }
+    }
+    return false;
+  }
+
+
+  const SPIKES = {
+    targetGroups: 2,
+    spawnCd: 0,
+    spawnCdMax: 40,
+  };
+
+  // ----- World: enemies -----
+  const ENEMY_W = 16;
+  const ENEMY_H = 16;
+
+  // Enemy A hit circle
+  const ENM_A_R = 5; // 6 にしたければここを 6
+  const ENM_A_RSQ = ENM_A_R * ENM_A_R;
+
+  function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
+
+  // circle (cx,cy,r) vs rect (rx,ry,rw,rh)
+  function circleRectOverlap(cx, cy, rSq, rx, ry, rw, rh){
+    const qx = clamp(cx, rx, rx + rw);
+    const qy = clamp(cy, ry, ry + rh);
+    const dx = cx - qx;
+    const dy = cy - qy;
+    return (dx*dx + dy*dy) <= rSq;
+  }
+
+
+  // Enemy hitbox (dot): 10x10 centered in a 16x16 sprite
+  const ENEMY_HIT = { ox: 3, oy: 3, w: 10, h: 10 };
+
+  /** @type {{id:number,x:number,y:number,vx:number,vy:number,mode:'static'|'bob',minY:number,maxY:number}[]} */
+  const enemies = [];
+  let nextEid = 1;
+
+  const ENM = {
+    target: 8,
+    cap: 14,          // Phase8 timeline: hard cap for enemyA on screen
+        // was 2 (x4 density test)
+    spawnCd: 0,
+    spawnCdMax: 30,   // was 120 -> 30 : spawn frequency x4
+    spawnTries: 80,   // more tries since density is higher
+    edgePad: 24,
+    bobChance: 0.55,
+  };
+
+  // ----- Enemy B: flying dart (jaloon (arr) 1) -----
+  // Spawns are announced with a blinking indicator at the left edge for 2 seconds, then the enemy enters.
+  const ENB_W = 16;
+  const ENB_H = 8;
+  const ENB_HIT = { ox: 2, oy: 1, w: 12, h: 6 };
+
+  /** @type {{id:number,x:number,y:number,vx:number}[]} */
+  const enemyBs = [];
+  let nextBid = 1;
+
+  const ENB = {
+    // TEST: higher frequency to validate the indicator.
+    startAfter: 120,          // frames before first schedule
+    spawnCd: 60,              // initial cooldown
+    spawnCdMin: 30,
+    spawnCdMax: 60,
+    indicatorFrames: 60,     // 2 seconds @60fps
+    blinkPeriod: 10,          // frames per blink toggle
+    vxBase: 2.60,             // dot/frame @ x1.00 (left -> right)
+    vx: 2.60,                 // runtime (base * speedMul)
+    edgePad: 24,              // forbid top/bottom 3 blocks in playfield
+    recentMax: 4,
+    recentYs: [],
+    minGap: 24,
+    minDeltaLast: 16,
+  };
+
+  /** @type {{ ys:number[], t:number } | null} */
+  let pendingEnemyBGroup = null;
+  
+  function enbWarnBlinkOn(){
+    if (!pendingEnemyBGroup) return false;
+    // 15f周期で点滅（必要ならここだけ調整）
+    const div = 15;
+    return (((pendingEnemyBGroup.t / div) | 0) % 2) === 0;
+  }
+
+  function enbWarnBlinkOn(){
+    if (!pendingEnemyBGroup) return false;
+    return ((((pendingEnemyBGroup.t / ENB.blinkPeriod) | 0) % 2) === 0);
+  }
+
+
+function pickEnemyBY(){
+    // Spawn Footprint v1.6: enemyB forbidden top/bottom 16dot inside the playfield; no clearance rules.
+    const topLine = Y_MIN + FP.FORBID_ENEMY_TOP;
+    const bottomLine = Y_MIN + FIELD_H - FP.FORBID_ENEMY_BOTTOM;
+    const yMin = topLine;
+    const yMax = bottomLine - ENB_H;
+    if (yMax <= yMin) return yMin;
+
+    // Prefer 8-dot alignment for readability
+    const steps = Math.floor((yMax - yMin) / 8);
+    const k = randInt(0, steps + 1);
+    return yMin + k * 8;
+  }
+
+function pickEnemyBGroupYs(count){
+  const baseY = pickEnemyBY();
+  const ys = [];
+
+  for (let i = 0; i < count; i++){
+    const y = baseY + i * 48;
+    // PF範囲チェック（通常EnemyBと同じ）
+    if (y < Y_MIN || y + ENB_H > Y_MIN + FIELD_H) return null;
+    ys.push(y);
+  }
+  return ys;
+}
+
+function decideEnemyBGroupCount(){
+  const t = HUD.timeSec;
+
+  if (t < 60) return 1;
+
+  if (t < 120){
+    if (t >= 110 && Math.random() < 0.5) return 2;
+    return 1;
+  }
+
+  // 3分目以降
+  if (t >= 170){
+    if (Math.random() < 0.5){
+      return (Math.random() < 0.5) ? 2 : 3;
+    }
+  }
+
+  if (Math.random() < 0.5) return 2;
+  return 1;
+}
+
+
+function scheduleEnemyB(){
+  if (frameCount < ENB.startAfter) return;
+  if (pendingEnemyBGroup) return;
+  if (ENB.spawnCd > 0){ ENB.spawnCd--; return; }
+
+  const count = decideEnemyBGroupCount();
+  const ys = (count === 1)
+    ? [pickEnemyBY()]
+    : pickEnemyBGroupYs(count);
+
+  if (!ys) return; // 編隊成立しなければスキップ
+
+  pendingEnemyBGroup = {
+    ys,
+    t: ENB.indicatorFrames
+  };
+}
+
+
+
+function spawnEnemyB(y){
+    const id = nextBid++;
+    enemyBs.push({ id, x: (X_MIN - ENB_W), y, vx: ENB.vx });
+  }
+
+function stepEnemyB(){
+  if (ENB.warnBlinkPrev == null) ENB.warnBlinkPrev = false;
+  if (!pendingEnemyBGroup && ENB.spawnCd > 0) ENB.spawnCd--;
+
+  if (pendingEnemyBGroup){
+    pendingEnemyBGroup.t--;
+
+    const blink = enbWarnBlinkOn();
+    if (blink && !ENB.warnBlinkPrev){
+      sfxEnemyBWarn();
+    }
+    ENB.warnBlinkPrev = blink;
+
+    if (pendingEnemyBGroup.t <= 0){
+      let spawned = 0;
+      for (const y of pendingEnemyBGroup.ys){
+        spawnEnemyB(y);
+        spawned++;
+      }
+      if (spawned > 0) sfxSpawnEnemyB();
+
+      pendingEnemyBGroup = null;
+      ENB.spawnCd = randInt(ENB.spawnCdMin, ENB.spawnCdMax);
+    }
+  } else {
+    ENB.warnBlinkPrev = false;
+  }
+
+  for (let i = enemyBs.length - 1; i >= 0; i--){
+    const b = enemyBs[i];
+    b.x += b.vx;
+    if (b.x > DOT_W + 32) enemyBs.splice(i, 1);
+  }
+}
+
+
+function drawEnemyBIndicator(){
+  if (!pendingEnemyBGroup) return;
+
+  const blinkOn = enbWarnBlinkOn();
+  if (!blinkOn) return;
+
+  const spr = spriteCanvases[SPR_KEYS.itm0];
+  if (!spr) return;
+  
+  const ys = Array.isArray(pendingEnemyBGroup.ys) ? pendingEnemyBGroup.ys : [pendingEnemyBGroup.y].filter(Number.isFinite);
+
+  for (const y of ys){
+    let py = Math.round(y + (ENB_H / 2) - 4);
+    py = clamp(py, Y_MIN, (Y_MIN + FIELD_H) - 8);
+    dotCtx.drawImage(spr, 0, 0, 8, 8, X_MIN, py, 8, 8);
+  }
+}
+
+
+  // ----- Enemy C: under-fish (jaloon (enm) 1) -----
+  // Lives below the playfield, patrols left-right endlessly.
+  // It "watches" the 16x16 tile directly above itself; if the player enters that tile,
+  // it starts rising (1 dot/frame). If the fish hitbox touches the player during rise/fall -> MISS.
+  // If the player escapes without contact, the fish returns below and patrol continues.
+  const ENC_W = 16;
+  const ENC_H = 16;
+  const ENC_HIT = { ox: 3, oy: 3, w: 10, h: 10 };
+
+  const ENC = {
+    speed: 1.30,       // dot/frame horizontal patrol
+    riseV: 1.5,        // dot/frame vertical rise/fall (16 frames for 16dot)
+    restY: (Y_MIN + FIELD_H + 1), // patrol line Y (just below playfield; hidden at rest)
+    cooldown: 90,      // frames before it can trigger again
+  };
+
+  const enemyC = {
+    x: X_MIN + (FIELD_W/2 - ENC_W/2),
+    y: ENC.restY,
+    dir: 1,
+    state: /** @type {'patrol'|'rise'|'fall'} */ ('patrol'),
+    cd: 0,
+    lockX: 0,
+  };
+
+  function resetEnemyC(){
+    enemyC.x = X_MIN + (FIELD_W/2 - ENC_W/2);
+    enemyC.y = ENC.restY;
+    enemyC.dir = 1;
+    enemyC.state = 'patrol';
+    enemyC.cd = 0;
+    enemyC.lockX = enemyC.x;
+  }
+
+  function enemyCWatchRect(){
+    // Keep the trigger zone attached to the patrol line.
+    return { x: enemyC.x + 1, y: enemyC.y - 12, w: 14, h: 24 };
+  }
+
+  function enemyCIsVisible(){
+    // Visible only when inside the playfield clip (rising/falling).
+    return enemyC.y < (Y_MIN + FIELD_H);
+  }
+
+
+  function enemyCVisualY(){
+    return enemyC.y;
+  }
+
+  function stepEnemyC(){
+    if (enemyC.cd > 0) enemyC.cd--;
+
+    if (enemyC.state === 'rise'){
+      enemyC.y -= ENC.riseV;
+      if (enemyC.y <= ENC.restY - 16){
+        enemyC.y = ENC.restY - 16;
+        enemyC.state = 'fall';
+      }
+      enemyC.x = enemyC.lockX;
+      return;
+    }
+
+    if (enemyC.state === 'fall'){
+      enemyC.y += ENC.riseV;
+      if (enemyC.y >= ENC.restY){
+        enemyC.y = ENC.restY;
+        enemyC.state = 'patrol';
+      }
+      enemyC.x = enemyC.lockX;
+      return;
+    }
+
+    // patrol (hidden)
+    enemyC.y = ENC.restY;
+    enemyC.x += enemyC.dir * ENC.speed;
+    const left = X_MIN;
+    const right = X_MIN + FIELD_W - ENC_W;
+    if (enemyC.x < left){ enemyC.x = left; enemyC.dir = 1; }
+    if (enemyC.x > right){ enemyC.x = right; enemyC.dir = -1; }
+  }
+
+  function enemyCCheckTrigger(){
+    if (enemyC.state !== 'patrol') return false;
+    if (enemyC.cd > 0) return false;
+
+    const hbX = P.x + PLAYER_HIT.ox;
+    const hbY = P.y + PLAYER_HIT.oy;
+    const hbW = PLAYER_HIT.w;
+    const hbH = PLAYER_HIT.h;
+
+    // Don't trigger if the player is outside the active playfield.
+    if (!rectIntersectsPF(hbX, hbY, hbW, hbH)) return false;
+
+    const w = enemyCWatchRect();
+    if (rectsOverlap(hbX, hbY, hbW, hbH, w.x, w.y, w.w, w.h)){
+      enemyC.state = 'rise';
+      enemyC.y = ENC.restY;      // start fully hidden
+      enemyC.lockX = enemyC.x;   // freeze X during the pop
+      enemyC.cd = ENC.cooldown;  // lockout until next trigger
+      sfxBiteC();
+      return true;
+    }
+    return false;
+  }
+
+  function enemyCCollidesPlayer(){
+    if (!enemyCIsVisible()) return false;
+
+    const hbX = P.x + PLAYER_HIT.ox;
+    const hbY = P.y + PLAYER_HIT.oy;
+    const hbW = PLAYER_HIT.w;
+    const hbH = PLAYER_HIT.h;
+
+    const ex = enemyC.x + ENC_HIT.ox;
+    const ey = enemyC.y + ENC_HIT.oy;
+    return rectsOverlap(hbX, hbY, hbW, hbH, ex, ey, ENC_HIT.w, ENC_HIT.h);
+  }
+
+  function enemyASweepRectFromParams(x, y, mode, minY, maxY){
+    if (mode === 'bob'){
+      return { x, y: minY, w: ENEMY_W, h: (maxY - minY) + ENEMY_H };
+    }
+    return { x, y, w: ENEMY_W, h: ENEMY_H };
+  }
+
+  function enemyASweepRectFromEnemy(e){
+    if (e.mode === 'bob'){
+      return { x: e.x, y: e.minY, w: ENEMY_W, h: (e.maxY - e.minY) + ENEMY_H };
+    }
+    return { x: e.x, y: e.y, w: ENEMY_W, h: ENEMY_H };
+  }
+
+  
+function isEnemyAPlacementFree(x, y, mode, minY, maxY){
+    // Use the sweep AABB for bobbing enemies, but enforce Spawn Footprint v1.6 forbidden bands.
+    const r = enemyASweepRectFromParams(x, y, mode, minY, maxY);
+    const a = aabbFromRect(r.x, r.y, r.w, r.h);
+
+    // Forbidden: top/bottom 16dot inside the playfield
+    if (isAabbForbiddenEnemy(a)) return false;
+
+    // Clearance rules (group AABB vs enemyA sweep AABB)
+    const blockGs = getBlockGroupAabbs();
+    for (const g of blockGs){
+      if (aabbEdgeDist(a, g.aabb) < FP.CLEAR_BLOCK_ENEMY_A) return false;
+    }
+
+    const spikeGs = getSpikeGroupAabbs();
+    for (const g of spikeGs){
+      if (aabbEdgeDist(a, g.aabb) < FP.CLEAR_SPIKE_ENEMY_A) return false;
+    }
+
+    // enemyA vs enemyA (Spawn Footprint extension): avoid heavy overlaps (especially bob sweep)
+    for (const e of enemies){
+      const r2 = enemyASweepRectFromEnemy(e);
+      const a2 = aabbFromRect(r2.x, r2.y, r2.w, r2.h);
+      if (aabbEdgeDist(a, a2) < FP.CLEAR_ENEMY_A_ENEMY_A) return false;
+    }
+
+    return true;
+  }
+
+
+
+  
+  function spawnEnemy(x0, y0){
+    // Spawn Footprint v1.6: enemyA forbidden top/bottom 16dot inside playfield; clearance handled in isEnemyAPlacementFree().
+    const yMin = Y_MIN + FP.FORBID_ENEMY_TOP;
+    const yMax = (Y_MIN + FIELD_H - FP.FORBID_ENEMY_BOTTOM - ENEMY_H);
+
+    for (let t = 0; t < ENM.spawnTries; t++){
+      // --- pick y (8-dot aligned) ---
+      let y;
+      if (typeof y0 === 'number'){
+        y = clamp(y0, yMin, yMax);
+        y = Math.round(y / 8) * 8;
+      } else {
+        if (yMax <= yMin) return false;
+        const steps = Math.floor((yMax - yMin) / 8);
+        y = yMin + randInt(0, steps + 1) * 8;
+      }
+
+      // --- pick x ---
+      let x;
+      if (typeof x0 === 'number'){
+        x = x0;
+      } else {
+        x = X_MIN - 48 - randInt(0, 96);
+
+        // If the left edge is busy, push further left
+        let leftmost = Infinity;
+        for (const e of enemies) if (e.x < leftmost) leftmost = e.x;
+        if (leftmost < X_MIN + 24) x -= 32;
+
+        // as tries increase, push slightly further to escape congestion
+        x -= (t * 4);
+      }
+
+      // --- decide bob/static ---
+      let mode = 'static';
+      let vy = 0;
+      let minY = y;
+      let maxY = y;
+
+      if (Math.random() < ENM.bobChance){
+        const amp = randInt(12, 32);
+        minY = clamp(y - amp, yMin, yMax);
+        maxY = clamp(y + amp, yMin, yMax);
+        if (maxY - minY >= 8){
+          mode = 'bob';
+          const s = 0.20 + Math.random() * 0.12;
+          vy = (Math.random() < 0.5 ? -s : s);
+        }
+      }
+
+      // --- placement check (bob uses sweep AABB) ---
+      if (!isEnemyAPlacementFree(x, y, mode, minY, maxY)) continue;
+
+      const id = nextEid++;
+      enemies.push({ id, x, y, vx: 0, vy, mode, minY, maxY });
+      return true;
+    }
+
+    return false;
+  }
+
+
+
+
+  function seedEnemies(){
+    enemies.length = 0;
+    nextEid = 1;
+
+    // Start with a couple so we can immediately test collisions / shooting
+    spawnEnemy(X_MIN + 16, undefined, true);
+    }
+
+  function cleanupEnemies(){
+    for (let i = enemies.length - 1; i >= 0; i--){
+      const e = enemies[i];
+      if (e.x > DOT_W + 48 || e.y < -64 || e.y > DOT_H + 64){
+        enemies.splice(i, 1);
+      }
+    }
+  }
+
+  function ensureEnemyDensity(){
+    if (ENM.spawnCd > 0){ ENM.spawnCd--; return; }
+    if (enemies.length >= ENM.target) return;
+
+    const ok = spawnEnemy(undefined, undefined);
+
+    // x4 spawn frequency: jitter also scaled down
+    ENM.spawnCd = ENM.spawnCdMax + randInt(0, 15);
+
+    // if crowded and we failed, retry sooner
+    if (!ok) ENM.spawnCd = 10;
+  }
+
+
+  function stepEnemies(){
+    for (const e of enemies){
+      if (e.mode !== 'bob') continue;
+      e.y += e.vy;
+      if (e.y < e.minY){
+        e.y = e.minY;
+        e.vy = Math.abs(e.vy);
+      } else if (e.y > e.maxY){
+        e.y = e.maxY;
+        e.vy = -Math.abs(e.vy);
+      }
+    }
+  }
+
+  // ----- Forced scroll (right) -----
+  const SCROLL = {
+    baseSpeed: 0.20,   // dot / frame @ x1.00
+    speedMul: 1.00,    // runtime multiplier from Phase8 timeline
+    frac: 0,
+    step: 0,
+    total: 0
+  };
+
+
+  // ============================================================
+  // Phase8: Minute 1 spawn timeline (tick-based)
+  // - Each second: category draw (EnemyA / Obstacle / Null)
+  // - Obstacle: Block vs Spike by mix ratio
+  // - EnemyB: rule per 10-second segment (count or maxB)
+  // - Speed: applied to scroll (and optionally EnemyB vx via ENB.vxBase)
+  // ============================================================
+    // Tick interval in seconds for Phase8 timeline (editable).
+  // - 1.0 : original (1 draw per second)
+  // - 0.5 : denser (2 draws per second)
+  // - 0.33: very dense
+
+  const P8_MIN1 = [
+    { t0: 0, t1: 10, tickSec: 0.5, catA:35, catO:5, mixSpk:0, bRule:{type:'count', n:0} },
+    { t0: 10, t1: 20, tickSec: 1.25, catA:35, catO:20, mixSpk:0, bRule:{type:'count', n:0} },
+    { t0: 20, t1: 30, tickSec: 1.25, catA:35, catO:20, mixSpk:0, bRule:{type:'count', n:1} },
+    { t0: 30, t1: 40, tickSec: 1.25, catA:35, catO:20, mixSpk:0, bRule:{type:'count', n:1} },
+    { t0: 40, t1: 50, tickSec: 0.8, catA:45, catO:35, mixSpk:33, bRule:{type:'count', n:1} },
+    { t0: 50, t1: 60, tickSec: 1.25, catA:35, catO:22, mixSpk:10, bRule:{type:'maxB', max:5, g2:50 } },
+  ];
+  
+  const P8_MIN2 = [
+    { t0: 0, t1: 10, tickSec: 1.0, catA:40, catO:28, mixSpk:33, bRule:{type:'count', n:0}, },
+    { t0: 10, t1: 20, tickSec: 1.0, catA:40, catO:28, mixSpk:33, bRule:{type:'count', n:2} },
+    { t0: 20, t1: 30, tickSec: 1.0, catA:40, catO:28, mixSpk:33, bRule:{type:'count', n:2} },
+    { t0: 30, t1: 40, tickSec: 1.0, catA:40, catO:28, mixSpk:33, bRule:{type:'count', n:2} },
+    { t0: 40, t1: 50, tickSec: 0.55, catA:45, catO:33, mixSpk:66, bRule:{type:'count', n:2} },
+    { t0: 50, t1: 60, tickSec: 1.0, catA:40, catO:28, mixSpk:33, bRule:{type:'maxB', max:6, g2:50, g3:50 } },
+  ];
+
+  const P8_MIN3 = [
+    { t0: 0, t1: 10, tickSec: 0.7, catA:45, catO:33, mixSpk:53, bRule:{type:'count', n:1}, g2:50 },
+    { t0: 10, t1: 20, tickSec: 0.7, catA:45, catO:33, mixSpk:53, bRule:{type:'count', n:3}, g2:50 },
+    { t0: 20, t1: 30, tickSec: 0.7, catA:45, catO:33, mixSpk:53, bRule:{type:'count', n:3}, g2:50 },
+    { t0: 30, t1: 40, tickSec: 0.7, catA:45, catO:33, mixSpk:53, bRule:{type:'count', n:3}, g2:50 },
+    { t0: 40, t1: 50, tickSec: 0.33, catA:50, catO:35, mixSpk:100, bRule:{type:'count', n:3}, g2:50 },
+    { t0: 50, t1: 60, tickSec: 0.7, catA:45, catO:33, mixSpk:53, bRule:{type:'maxB', max:7, g2:25, g3:75 } },
+  ];
+
+  const P8_MIN4 = [
+    { t0: 0, t1: 10, tickSec: 0.5, catA:45, catO:33, mixSpk:100, bRule:{type:'count', max:5, g2:50, g3:50 } },
+    { t0: 10, t1: 20, tickSec: 0.5, catA:45, catO:33, mixSpk:100, bRule:{type:'count', max:5, g2:50, g3:50 } },
+    { t0: 20, t1: 30, tickSec: 0.5, catA:45, catO:33, mixSpk:100, bRule:{type:'count', max:5, g2:50, g3:50 } },
+    { t0: 30, t1: 40, tickSec: 0.5, catA:45, catO:33, mixSpk:100, bRule:{type:'count', max:5, g2:50, g3:50 } },
+    { t0: 40, t1: 50, tickSec: 0.33, catA:50, catO:35, mixSpk:100, bRule:{type:'count', max:5, g2:50, g3:50 } },
+    { t0: 50, t1: 60, tickSec: 0.7, catA:45, catO:33, mixSpk:100, bRule:{type:'maxB', max:7, g2:25, g3:75 } },
+  ];
+
+
+  const P8 = {
+    timeInMin: 0,            // 0..60 (float seconds)
+    absSec: 0,
+    tickAcc: 0,              // accumulator for tick timing
+    segStartSec: -999,
+    bSchedule: /** @type {number[]} */([]), // absolute seconds (in-minute) when we request an EnemyB
+    bIndex: 0,               // index into bSchedule
+    // Rolling 10s stats (success category)
+    win: /** @type {{A:number,Blk:number,Spk:number,N:number}[]} */([]),
+    winSum: {A:0, Blk:0, Spk:0, N:0},
+
+    // Window scheduler (fixed 10s window)
+    winStartSec: -999,
+    winBag: /** @type {('A'|'O'|'N')[]} */([]),
+    winBagI: 0,
+  };
+
+const P8_MAX_RUN_A = 4;
+const P8_MAX_RUN_O = 2;
+
+  function p8Reset(){
+    P8.timeInMin = 0;
+    P8.absSec = 0;
+    P8.tickAcc = 0;
+    P8.segStartSec = -999;
+    P8.bSchedule.length = 0;
+    P8.bIndex = 0;
+    P8.win.length = 0;
+    P8.winSum.A = P8.winSum.Blk = P8.winSum.Spk = P8.winSum.N = 0;
+    P8.winStartSec = -999;
+    P8.winBag.length = 0;
+    P8.winBagI = 0;
+    SCROLL.speedMul = 1.00;
+    // reset EnemyB base vx multiplier
+    ENB.vx = ENB.vxBase;
+    P8.runA = 0;
+    P8.runO = 0;
+  }
+
+  function p8GetSeg_Min1(tSec){
+    for (const s of P8_MIN1){
+      if (tSec >= s.t0 && tSec < s.t1) return s;
+    }
+    return P8_MIN1[P8_MIN1.length - 1];
+  }
+
+  function p8TableForMinute(minIdx){
+    // 1分ループ設定
+    if (minIdx <= 0) return P8_MIN1;
+    if (minIdx === 1) return P8_MIN2;
+    if (minIdx === 1) return P8_MIN3;
+    return P8_MIN4;
+  }
+
+  function p8GetSeg(tAbsSec){
+    const minIdx = (Math.floor(tAbsSec / 60) | 0);
+    const secInMin = (Math.floor(tAbsSec % 60) | 0);
+    const table = p8TableForMinute(minIdx);
+    for (const s of table){
+      if (secInMin >= s.t0 && secInMin < s.t1) return s;
+    }
+    return table[table.length - 1];
+  }
+
+  function p8GetTickSec(){
+    const seg = p8GetSeg(P8.absSec);
+    const v = (seg && typeof seg.tickSec === 'number') ? seg.tickSec : 0.5;
+    // 安全柵
+    return Math.max(0.10, Math.min(2.00, v));
+  }
+
+
+  function p8Rand100(){ return Math.random() * 100; }
+
+  const P8_WIN_SEC = 10; // fixed window size (seconds)
+
+  function p8ShuffleInPlace(a){
+    for (let i = a.length - 1; i > 0; i--){
+      const j = (Math.random() * (i + 1)) | 0;
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+  }
+
+  function p8RebuildWinBag(seg, tickSec){
+    const draws = Math.max(1, Math.round(P8_WIN_SEC / Math.max(0.01, tickSec)));
+
+    const catA = Math.max(0, Math.min(100, seg.catA | 0));
+    const catO = Math.max(0, Math.min(100, seg.catO | 0));
+
+    let nA = Math.round(draws * catA / 100);
+    let nO = Math.round(draws * catO / 100);
+
+    // Clamp in case rounding overshoots
+    let over = (nA + nO) - draws;
+    if (over > 0){
+      const cutO = Math.min(nO, over);
+      nO -= cutO;
+      over -= cutO;
+      if (over > 0) nA = Math.max(0, nA - over);
+    }
+
+    const bag = [];
+    for (let i = 0; i < nA; i++) bag.push('A');
+    for (let i = 0; i < nO; i++) bag.push('O');
+    while (bag.length < draws) bag.push('N');
+
+    p8ShuffleInPlace(bag);
+    return bag;
+  }
+
+  function p8WinEnsure(prevT, seg, tickSec){
+    const ws = ((Math.floor(prevT / P8_WIN_SEC) * P8_WIN_SEC) | 0);
+    if (ws !== P8.winStartSec || P8.winBagI >= P8.winBag.length){
+      P8.winStartSec = ws;
+      P8.winBag = p8RebuildWinBag(seg, tickSec);
+      P8.winBagI = 0;
+    }
+  }
+
+  function p8WinPick(prevT, seg, tickSec, allowA, allowO){
+    p8WinEnsure(prevT, seg, tickSec);
+    let k = P8.winBag[P8.winBagI++] || 'N';
+    if (k === 'A' && !allowA) k = 'N';
+    if (k === 'O' && !allowO) k = 'N';
+    return k;
+  }
+
+
+  function p8EnterSegmentIfNeeded(){
+    const secAbsInt = Math.floor(P8.absSec) | 0;
+    const secInMin = (secAbsInt % 60) | 0;
+    const seg = p8GetSeg(P8.absSec);
+    
+
+
+    // When a new 10-second window begins, set up EnemyB schedule.
+    const nowSegStart = ((secInMin / 10) | 0) * 10;
+    if (P8.segStartSec === nowSegStart) return;
+    P8.segStartSec = nowSegStart;
+
+    // Reset schedule for this window.
+    P8.bSchedule.length = 0;
+    P8.bIndex = 0;
+
+    if (seg.bRule.type === 'count'){
+      // Pick N distinct *integer* seconds inside this 10s window (1..9 offsets).
+      const used = new Set();
+      for (let i=0; i<seg.bRule.n; i++){
+        let off = 1 + ((Math.random()*9)|0); // 1..9
+        let guard = 0;
+        while (used.has(off) && guard++ < 30) off = 1 + ((Math.random()*9)|0);
+        used.add(off);
+        P8.bSchedule.push(nowSegStart + off);
+      }
+      P8.bSchedule.sort((a,b)=>a-b);
+    }
+    // maxB handled continuously in p8Tick()
+  }
+
+function requestEnemyBNow(count = 1){
+  if (pendingEnemyBGroup) return false;
+
+  const ys = (count === 1)
+    ? [pickEnemyBY()]
+    : pickEnemyBGroupYs(count);
+
+  if (!ys) return false;
+
+  pendingEnemyBGroup = { ys, t: ENB.indicatorFrames };
+  return true;
+}
+
+
+  function p8Tick(dtSec){
+    const prevAbs = P8.absSec;
+
+    // ★旧ロジック互換：分内秒（0..60）を prevT として保持
+    const prevT = P8.timeInMin;              // float 0..60
+    const nextTRaw = prevT + dtSec;    // wrapしない（60を超えることがある）
+
+    const seg = p8GetSeg(prevAbs);
+    p8EnterSegmentIfNeeded();
+    
+    // --- Speed: global ramp only (0..180s: 1.00 -> 1.50) ---
+    const t = Math.max(0, Math.min(180, P8.absSec));
+    const spMul = 1.0 + 0.6667 * (t / 180);
+
+    SCROLL.speedMul = spMul;
+    ENB.vx = ENB.vxBase * spMul;
+
+    // --- Category draw (A / Obstacle / Null) ---
+    let res = 'N';
+    const allowA = (P8.runA < P8_MAX_RUN_A);
+    const allowO = (P8.runO < P8_MAX_RUN_O);
+
+    // Window scheduler: guarantees per-10s pacing (prevents long empty gaps)
+    const k = p8WinPick(prevT, seg, dtSec, allowA, allowO);
+
+    if (k === 'A'){
+      if (enemies.length < ENM.cap) res = spawnEnemy(undefined, undefined) ? 'A' : 'N';
+      else res = 'N';
+    } else if (k === 'O'){
+      // Obstacle: Block vs Spike (mixSpk only)
+      const spk = Math.max(0, Math.min(100, seg.mixSpk | 0)); // 0..100
+      const blk = 100 - spk;
+
+      const ro = p8Rand100();
+      if (ro < blk){
+        // Block group
+        if (getGroupCount() < 6) res = spawnBlockGroup(undefined, undefined) ? 'Blk' : 'N';
+        else res = 'N';
+      } else {
+        // Spike group
+        if (getSpikeGroupCount() < 6) res = spawnSpikeGroup(undefined, undefined) ? 'Spk' : 'N';
+        else res = 'N';
+      }
+    } else {
+      res = 'N';
+    }
+
+    // --- Run limiter: update streaks based on actual result ---
+      if (res === 'A'){
+        P8.runA++;
+        P8.runO = 0;
+      } else if (res === 'Blk' || res === 'Spk'){
+        P8.runO++;
+        P8.runA = 0;
+      } else { // 'N' (including spawn fail/cap)
+        P8.runA = 0;
+        P8.runO = 0;
+    }
+
+
+    // --- EnemyB rule ---
+    // Count-based schedule: if we crossed a scheduled second, request an EnemyB.
+    if (P8.bSchedule.length){
+      while (P8.bIndex < P8.bSchedule.length){
+        const tSched = P8.bSchedule[P8.bIndex];
+        // “過去扱い”は < にする（=はこのtickで拾いたい）
+        if (tSched < prevT - 1e-9){ P8.bIndex++; continue; }
+        if (tSched <= nextTRaw + 1e-9){
+          const ok = requestEnemyBNow(1);          if (!ok){
+            // retry at +1s (bounded within current 10s window)
+            const retry = Math.min(P8.segStartSec + 9, (tSched|0) + 1);
+            if (!P8.bSchedule.includes(retry)){
+              P8.bSchedule.push(retry);
+              P8.bSchedule.sort((a,b)=>a-b);
+            }
+          }
+          P8.bIndex++;
+          continue;
+        }
+        break;
+      }
+    }
+
+  // maxB: keep requesting while not exceeding max simultaneous.
+  if (seg.bRule && seg.bRule.type === 'maxB'){
+    const max = seg.bRule.max|0;
+
+    // 条件が揃わないなら「何もしない」(p8Tickは止めない)
+    const canReq =
+      (enemyBs.length < max) &&
+      (enemyBs.length === 0) &&
+      (!pendingEnemyBGroup) &&
+      (ENB.spawnCd <= 0);
+
+    if (canReq){
+      const g2 = (seg.bRule.g2 ?? 0) | 0;
+      const g3 = (seg.bRule.g3 ?? 0) | 0;
+      const rr = p8Rand100();
+
+      let n = 1;
+      if (rr < g3) n = 3;
+      else if (rr < (g3 + g2)) n = 2;
+
+      requestEnemyBNow(n);
+    }
+  }
+
+
+  // Advance absolute time by tick interval (no wrap)
+  P8.absSec = prevAbs + dtSec;
+  P8.timeInMin = (P8.absSec % 60); // HUD表示や既存デバッグ用に残す（任意）
+  
+  const prevMin = (Math.floor(prevAbs / 60) | 0);
+  const nowMin  = (Math.floor(P8.absSec / 60) | 0);
+  if (nowMin !== prevMin){
+    P8.segStartSec = -999;
+    P8.bSchedule.length = 0;
+    P8.bIndex = 0;
+  }
+}
+
+
+  // ----- Map generation -----
+  const MAP = {
+    targetGroups: 3,
+    spawnCd: 0,
+    spawnCdMax: 18,
+  };
+
+  // Spawn tuning: reduce "human feels biased" repeats.
+  // - Avoid top/bottom 24dot (3 blocks) in the playfield.
+  // - Keep new group Y away from recent and currently-visible group Ys.
+  const SPAWN = {
+    edgePad: 24,        // top/bottom forbidden band inside the playfield (dot)
+    minGap: 24,         // minimum vertical separation between group anchors (dot)
+    minDeltaLast: 16,   // ensure consecutive spawns differ (dot)
+    recentMax: 4,
+    recentYs: [],
+  };
+
+  function getActiveGroupAnchorYs(){
+    const m = new Map();
+    for (const b of blocks){
+      const v = m.get(b.gid);
+      if (!v) m.set(b.gid, {minY: b.y});
+      else if (b.y < v.minY) v.minY = b.y;
+    }
+    return Array.from(m.values()).map(v => v.minY);
+  }
+
+  function pickSpawnY(yMin, yMax){
+    const slots = [];
+    for (let y = yMin; y <= yMax; y += 8) slots.push(y);
+    // Shuffle slots so results remain "random", while still applying constraints.
+    for (let i = slots.length - 1; i > 0; i--){
+      const j = (Math.random() * (i + 1)) | 0;
+      const t = slots[i]; slots[i] = slots[j]; slots[j] = t;
+    }
+
+    const activeYs = getActiveGroupAnchorYs();
+    const avoidYs = SPAWN.recentYs.concat(activeYs);
+
+    let bestY = slots[0] ?? yMin;
+    let bestScore = -1;
+
+    for (const y of slots){
+      // score = min distance from any avoidY (bigger is better)
+      let minD = Infinity;
+      for (const a of avoidYs){
+        const d = Math.abs(y - a);
+        if (d < minD) minD = d;
+      }
+      if (avoidYs.length === 0) minD = 9999;
+
+      if (minD > bestScore){
+        bestScore = minD;
+        bestY = y;
+      }
+
+      // Accept if far enough from avoidYs, and not too close to last spawn
+      let ok = true;
+      for (const a of avoidYs){
+        if (Math.abs(y - a) < SPAWN.minGap){ ok = false; break; }
+      }
+      if (ok && SPAWN.recentYs.length > 0){
+        const last = SPAWN.recentYs[SPAWN.recentYs.length - 1];
+        if (Math.abs(y - last) < SPAWN.minDeltaLast) ok = false;
+      }
+      if (ok) return y;
+    }
+    // If constraints are too tight, fall back to "most different" slot.
+    return bestY;
+  }
+
+  // ----- Build sprite canvases (from sprites_pack) -----
+  let spriteCanvases = {};
+  try {
+    spriteCanvases = SpritePack.spritepackBuildCanvases?.() || {};
+  } catch (e) {
+    console.warn('SpritePack build failed. Check local server + file name.', e);
+  }
+
+  // Cached tinted sprite for orange orb (enemyB drop)
+  let orbSprOrange = null;
+  function getOrbOrangeSprite(){
+    const base = spriteCanvases[SPR_KEYS.itm1];
+    if (!base) return null;
+    if (orbSprOrange) return orbSprOrange;
+    const c = document.createElement('canvas');
+    c.width = base.width; c.height = base.height;
+    const ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(base, 0, 0);
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = '#ff7700';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.globalCompositeOperation = 'source-over';
+    orbSprOrange = c;
+    return orbSprOrange;
+  }
+  const SPR_KEYS = {
+    ply0: 'jaloon (ply) 0',
+    ply1: 'jaloon (ply) 1',
+    arr0: 'jaloon (arr) 0',
+    arr1: 'jaloon (arr) 1',
+    itm0: 'jaloon (itm) 0',
+    itm1: 'jaloon (itm) 1',
+    blc0: 'jaloon (blc) 0',
+    blc1: 'jaloon (blc) 1',
+    enm0: 'jaloon (enm) 0',
+    enm1: 'jaloon (enm) 1',
+    grn0: 'jaloon (grn) 0',
+    grn1: 'jaloon (grn) 1',
+    dft0: 'jaloon (dft) 0',
+    dft1: 'jaloon (dft) 1',
+  };
+
+// ----- Input (keyboard) -----
+  const Actions = {
+    left:false, right:false,
+    flap:false, flapJust:false,
+    shoot:false, shootJust:false,
+    
+    // Systems
+    pause: false, pauseJust: false,   // Space
+    howto: false, howtoJust: false,   // H
+    enter: false, enterJust: false, tapEnterJust: false,   // Enter
+    esc: false, escJust: false,       // Esc
+    tapPauseJust: false,                // Tap Records (mobile)
+    
+    // (Old records key 'R' maps to pause for compatibility if needed)
+  };
+
+
+  // Input sources (keyboard / mobile / gamepad). Actions are the merged result.
+  const INPUT = {
+    kbd: { left:false, right:false, flap:false, shoot:false, pause:false, howto:false, enter:false, esc:false },
+    mob: { left:false, right:false, flap:false, shoot:false, pause:false, howto:false, enter:false, esc:false },
+    pad: { left:false, right:false, flap:false, shoot:false, pause:false, howto:false, enter:false, esc:false },
+    _padPrevButtons: [],
+    _padPrevMute: false,
+  };
+
+  function recomputeActions(){
+    Actions.left  = !!(INPUT.kbd.left  || INPUT.mob.left  || INPUT.pad.left);
+    Actions.right = !!(INPUT.kbd.right || INPUT.mob.right || INPUT.pad.right);
+    Actions.flap  = !!(INPUT.kbd.flap  || INPUT.mob.flap  || INPUT.pad.flap);
+    Actions.shoot = !!(INPUT.kbd.shoot || INPUT.mob.shoot || INPUT.pad.shoot);
+
+    Actions.pause = !!(INPUT.kbd.pause || INPUT.mob.pause || INPUT.pad.pause);
+    Actions.howto = !!(INPUT.kbd.howto || INPUT.mob.howto || INPUT.pad.howto);
+    Actions.enter = !!(INPUT.kbd.enter || INPUT.mob.enter || INPUT.pad.enter);
+    Actions.esc   = !!(INPUT.kbd.esc   || INPUT.mob.esc   || INPUT.pad.esc);
+  }
+
+  let prevFlap=false, prevShoot=false;
+  let prevPause=false, prevHowto=false, prevEnter=false, prevEsc=false;
+  let tapStartQueued = false;
+  let tapPauseQueued = false;
+
+  function syncEdges(){
+    Actions.flapJust  = Actions.flap  && !prevFlap;
+    Actions.shootJust = Actions.shoot && !prevShoot;
+    
+    Actions.pauseJust = Actions.pause && !prevPause;
+    Actions.howtoJust = Actions.howto && !prevHowto;
+    Actions.enterJust = (Actions.enter && !prevEnter);
+    Actions.tapEnterJust = tapStartQueued;
+    Actions.tapPauseJust = tapPauseQueued;
+    Actions.escJust   = Actions.esc   && !prevEsc;
+
+    tapStartQueued = false;
+    tapPauseQueued = false;
+
+    prevFlap = Actions.flap;
+    prevShoot = Actions.shoot;
+    prevPause = Actions.pause;
+    prevHowto = Actions.howto;
+    prevEnter = Actions.enter;
+    prevEsc   = Actions.esc;
+  }
+
+  function keyDown(e){
+    // Game
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft')  INPUT.kbd.left = true;
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') INPUT.kbd.right = true;
+    if (e.code === 'Period') INPUT.kbd.flap = true;
+    if (e.code === 'Comma')  INPUT.kbd.shoot = true;
+
+    // System
+    if (e.code === 'Space') INPUT.kbd.pause = true;   // Pause
+    if (e.code === 'KeyH')  INPUT.kbd.howto = true;   // HowTo
+    if (e.code === 'Enter') INPUT.kbd.enter = true;   // Enter
+    if (e.code === 'Escape') INPUT.kbd.esc = true;    // Esc
+
+    // Mute is always active (immediate)
+    if (e.code === 'KeyM') setAudioMode((BGM.mode + 1) % 3);
+
+    recomputeActions();
+  }
+
+  function keyUp(e){
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft')  INPUT.kbd.left = false;
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') INPUT.kbd.right = false;
+    if (e.code === 'Period') INPUT.kbd.flap = false;
+    if (e.code === 'Comma')  INPUT.kbd.shoot = false;
+
+    if (e.code === 'Space') INPUT.kbd.pause = false;
+    if (e.code === 'KeyH')  INPUT.kbd.howto = false;
+    if (e.code === 'Enter') INPUT.kbd.enter = false;
+    if (e.code === 'Escape') INPUT.kbd.esc = false;
+
+    recomputeActions();
+  }
+  
+  window.addEventListener('keydown', keyDown);
+  window.addEventListener('keyup', keyUp);
+
+  recomputeActions();
+
+
+  // ----- Input (gamepad / XInput via standard Gamepad API) -----
+  function pollGamepad(){
+    const getPads = navigator.getGamepads || navigator.webkitGetGamepads;
+    if (!getPads) return;
+    const pads = getPads.call(navigator);
+    let gp = null;
+    for (let i=0; i<pads.length; i++){
+      const p = pads[i];
+      if (p && p.connected){ gp = p; break; }
+    }
+    if (!gp){
+      // If disconnected, clear pad states.
+      if (INPUT.pad.left || INPUT.pad.right || INPUT.pad.flap || INPUT.pad.shoot || INPUT.pad.pause || INPUT.pad.howto || INPUT.pad.enter || INPUT.pad.esc){
+        INPUT.pad.left = INPUT.pad.right = INPUT.pad.flap = INPUT.pad.shoot = false;
+        INPUT.pad.pause = INPUT.pad.howto = INPUT.pad.enter = INPUT.pad.esc = false;
+        recomputeActions();
+      }
+      return;
+    }
+
+    // Standard mapping (Xbox / XInput typically reports this).
+    const ax0 = (gp.axes && gp.axes.length) ? gp.axes[0] : 0;
+    const stickL = ax0 < -0.35;
+    const stickR = ax0 >  0.35;
+
+    const b = gp.buttons || [];
+    const pressed = (i)=>!!(b[i] && b[i].pressed);
+
+    const dpadL = pressed(14);
+    const dpadR = pressed(15);
+
+    const btnA = pressed(0);
+    const btnB = pressed(1);
+    const btnX = pressed(2);
+    const btnY = pressed(3);
+    const btnLB = pressed(4);
+    const btnBack = pressed(8);
+    const btnStart = pressed(9);
+
+    INPUT.pad.left  = !!(dpadL || stickL);
+    INPUT.pad.right = !!(dpadR || stickR);
+
+    // Gameplay
+    INPUT.pad.flap  = !!btnA;          // A = Flap
+    INPUT.pad.shoot = !!(btnX || btnB); // X/B = Shoot
+
+    // System
+    INPUT.pad.pause = !!btnStart;       // Start = Records/Pause
+    INPUT.pad.howto = !!btnY;           // Y = HowTo
+    INPUT.pad.enter = !!btnA;           // A also acts as Enter on Title
+    INPUT.pad.esc   = !!btnBack;        // Back = Title
+
+    // Mute toggle (edge): LB
+    if (btnLB && !INPUT._padPrevMute){
+      setAudioMode((BGM.mode + 1) % 3);
+    }
+    INPUT._padPrevMute = !!btnLB;
+
+    recomputeActions();
+  }
+
+  // ----- Input (mobile buttons) -----
+  function bindHold(btn, onDown, onUp){
+    if (!btn) return;
+    const down = (e)=>{ e.preventDefault(); e.stopPropagation(); onDown(); };
+    const up   = (e)=>{ e.preventDefault(); e.stopPropagation(); onUp(); };
+    btn.addEventListener('pointerdown', down, {passive:false});
+    btn.addEventListener('pointerup', up, {passive:false});
+    btn.addEventListener('pointercancel', up, {passive:false});
+    btn.addEventListener('pointerleave', up, {passive:false});
+  }
+
+  bindHold(document.getElementById('btnPadMoveL'),
+    ()=>{ INPUT.mob.left = true; recomputeActions(); },
+    ()=>{ INPUT.mob.left = false; recomputeActions(); }
+  );
+
+  bindHold(document.getElementById('btnPadMoveR'),
+    ()=>{ INPUT.mob.right = true; recomputeActions(); },
+    ()=>{ INPUT.mob.right = false; recomputeActions(); }
+  );
+
+  // ↙ : Shoot (S)
+  bindHold(document.getElementById('btnPadShootL'),
+    ()=>{ INPUT.mob.shoot = true; recomputeActions(); },
+    ()=>{ INPUT.mob.shoot = false; recomputeActions(); }
+  );
+
+  // ↘ : Flap (F)
+  bindHold(document.getElementById('btnPadShootR'),
+    ()=>{ INPUT.mob.flap = true; recomputeActions(); },
+    ()=>{ INPUT.mob.flap = false; recomputeActions(); }
+  );
+
+  // Top bar: HowTo Play
+  bindHold(document.getElementById('btnHowto'),
+    ()=>{ INPUT.mob.howto = true; recomputeActions(); },
+    ()=>{ INPUT.mob.howto = false; recomputeActions(); }
+  );
+
+
+  // Mobile: Records (text button)
+  const btnRecordsText = document.getElementById('btnRecordsText');
+  if (btnRecordsText){
+    btnRecordsText.setAttribute('draggable', 'false');
+    const blockTextUI = (e)=>{ e.preventDefault(); e.stopPropagation(); };
+    btnRecordsText.addEventListener('contextmenu', blockTextUI, {passive:false});
+    btnRecordsText.addEventListener('selectstart', blockTextUI, {passive:false});
+      
+    const down = (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      if (overlayState === OVL.HOWTO) return; // ignore while HowTo is open
+      tapPauseQueued = true; // toggle Records (same as Space)
+    };
+    btnRecordsText.addEventListener('pointerdown', down, {passive:false});
+  }
+
+
+  // Top bar: Title
+  // - On Title screen: becomes "RSG" link (opens in new tab)
+  // - In-game / Gameover: works as "Title" (same as ESC)
+  const btnTitle = document.getElementById('btnTitle');
+  if (btnTitle){
+    const RSG_URL = "https://ryosatoanime.github.io/RSG/index.html";
+    // Prevent the synthetic "click" (which follows pointerdown) from turning into an RSG jump
+    // when the pointerdown action itself changes the mode (e.g., in-game Title -> title screen).
+    btnTitle._suppressNextClick = false;
+
+    // iOS Safari is picky: window.open from pointerdown/touchstart is often blocked.
+    // So: let a real click drive navigation when we're in "rsg" mode.
+    btnTitle.addEventListener('click', (e)=>{
+      if (btnTitle._suppressNextClick){
+        btnTitle._suppressNextClick = false;
+        return;
+      }
+      if (btnTitle.dataset.mode !== 'rsg') return;
+      e.preventDefault(); e.stopPropagation();
+      // Most reliable on mobile: navigate in the same tab.
+      // (If you *really* want a new tab, swap to: window.open(RSG_URL, '_blank');)
+      window.location.href = RSG_URL;
+    }, {passive:false});
+
+    const down = (e)=>{
+      if (btnTitle.dataset.mode === 'rsg'){
+        // Don't preventDefault here; we want the subsequent click to fire.
+        return;
+      }
+      // We'll handle this press as an in-game "Title" action; suppress the following click.
+      btnTitle._suppressNextClick = true;
+      e.preventDefault(); e.stopPropagation();
+      INPUT.mob.esc = true;
+      recomputeActions();
+    };
+    const up = (e)=>{ e.preventDefault(); e.stopPropagation(); INPUT.mob.esc = false; recomputeActions(); };
+    btnTitle.addEventListener('pointerdown', down, {passive:false});
+    btnTitle.addEventListener('pointerup', up, {passive:false});
+    btnTitle.addEventListener('pointercancel', up, {passive:false});
+    btnTitle.addEventListener('pointerleave', up, {passive:false});
+  }
+
+
+  viewCanvas.addEventListener('pointerdown', (e)=>{
+    // Canvas tap behavior (mobile):
+    // - Title: start
+    // - GameOver: restart
+    // - In-game: open/close Records (same as Space)
+    // - While HowTo is open: ignore (HowTo overlay handles its own tap-to-close)
+    e.preventDefault(); e.stopPropagation();
+
+    if (overlayState === OVL.HOWTO) return;
+
+    if (overlayState === OVL.PAUSE){
+      tapPauseQueued = true; // close Records
+      return;
+    }
+
+    if (overlayState !== OVL.NONE) return;
+
+    if (inTitle || missFrames > 0){
+      tapStartQueued = true;
+      return;
+    }
+
+    // In-game (not Title, not GameOver): open Records
+    tapPauseQueued = true;
+  });
+// ----- Player state (dot) -----
+  const P = {
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    anim: 0,
+    flapLeft: 0
+  };
+
+  // ----- Projectiles (dot) -----
+  // Arrow is drawn using SpritePack: "jaloon (arr) 0"
+  // Arc: a little up at spawn, then falls with gravity.
+  const ARROW = {
+    max: 2,
+    vx: -4.00,
+    vy0: -0.75,
+    g: 0.075,
+    dragX: 1.000,
+    dragY: 0.998,
+    cooldown: 30,
+    life: 180
+  };
+
+  // Arrow hitbox (dot): top-left origin of the sprite canvas.
+  // "rows 4-5, left-justified 8 dots" => y=3..4 (0-index), height=2, width=8.
+  const ARROW_HIT = { ox: 2, oy: 2, w: 4, h: 4 };
+  /** @type {{x:number,y:number,vx:number,vy:number,life:number}[]} */
+  const arrows = [];
+  let arrowCd = 0;
+
+// ----- Items: Orbs (jaloon (itm) 1) -----
+// Spawned when Enemy A or B is destroyed by an arrow.
+// They drift down slowly, while moving with background scroll (same as blocks).
+const ORB = {
+  fallV: 0.1,   // dot / frame (slow fall)
+};
+const ORB_W = 7;
+const ORB_H = 7;
+// Hitbox is 9x9; we treat orb.x/y as hitbox top-left, and draw sprite inside (+1,+1).
+const ORB_HIT = { ox: 0, oy: 0, w: 9, h: 9 };
+
+/** @type {{x:number,y:number,vy:number}[]} */
+const orbs = [];
+
+function spawnOrbAt(cx, cy, kind=0){
+  // kind: 0=yellow (normal), 1=orange (reward+2)
+  // Clip to playable field.
+  const ccx = Math.max(X_MIN, Math.min(cx, X_MIN + FIELD_W));
+  const ccy = Math.max(Y_MIN, Math.min(cy, Y_MIN + FIELD_H));
+
+  const x = (ccx - ORB_HIT.w/2);
+  const y = (ccy - ORB_HIT.h/2);
+  orbs.push({ x, y, vy: ORB.fallV, kind });
+}
+
+function stepOrbs(){
+  for (let i = orbs.length - 1; i >= 0; i--){
+    const o = orbs[i];
+    o.y += o.vy;
+
+    // remove if offscreen
+    if (o.x > DOT_W + 40 || o.y > DOT_H + 40 || o.x < -80 || o.y < -80){
+      orbs.splice(i, 1);
+      continue;
+    }
+
+    // collect if player touches
+    const hbX = P.x + PLAYER_HIT.ox;
+    const hbY = P.y + PLAYER_HIT.oy;
+    const hbW = PLAYER_HIT.w;
+    const hbH = PLAYER_HIT.h;
+    if (rectsOverlap(
+      hbX, hbY, hbW, hbH,
+      o.x + ORB_HIT.ox, o.y + ORB_HIT.oy, ORB_HIT.w, ORB_HIT.h
+    )){
+      const k = (o.kind|0);
+      // ★ kind=0: yellow / kind=1: orange
+      if (k === 1) sfxOrbOrange();
+      else         sfxOrbYellow();
+      orbs.splice(i, 1);
+      addScoreFromOrb(k);
+    }
+  }
+}
+
+  
+
+// ----- Debris: Chain wreckage (jaloon (dft) 0 / 1) -----
+// Spawned when Enemy A / B is destroyed (by arrow or by other debris).
+// It drifts LEFT while falling. If it touches another enemy A/B during the fall,
+// that enemy is destroyed and also turns into debris (chain reaction).
+const DFT = {
+  // "heavier than Arrow": less horizontal speed, more downward push, no upward hop.
+  vx: -1.35,
+  vy0: 0.28,
+  g: 0.060,
+  dragX: 0.995,
+  dragY: 0.996,
+  life: 260,
+  max: 48,
+};
+
+const DFT_W = 16;
+const DFT_H = 16;
+
+// Hitboxes (dot): top-left origin of the sprite canvas.
+const DFT_HIT_A = { ox: 2, oy: 3, w: 9, h: 9 };   // EnemyA debris: jaloon (dft) 0
+const DFT_HIT_B = { ox: 1, oy: 1, w: 12, h: 7 };  // EnemyB debris: jaloon (dft) 1
+
+/** @type {{x:number,y:number,vx:number,vy:number,life:number,kind:0|1}[]} */
+const debris = [];
+
+// Preallocated queue for chain-spawned debris (GC-free, no per-frame array/object allocation)
+let _dftAddN = 0;
+const _dftAddKind = new Int8Array(DFT.max);
+const _dftAddX = new Float32Array(DFT.max);
+const _dftAddY = new Float32Array(DFT.max);
+
+
+function spawnDebris(kind, x, y){
+  if (debris.length >= DFT.max) return;
+  debris.push({
+    x,
+    y,
+    vx: DFT.vx,
+    vy: DFT.vy0,
+    life: DFT.life,
+    kind: kind === 1 ? 1 : 0,
+  });
+}
+
+function spawnDebrisFromEnemyA(ex, ey){
+  // Enemy A is 16x16, so we can align top-left.
+  spawnDebris(0, ex, ey);
+}
+
+function spawnDebrisFromEnemyB(ex, ey){
+  // Enemy B is 16x8; shift a little up so the 16x16 debris looks centered.
+  spawnDebris(1, ex, ey - 4);
+}
+
+function debrisHit(d){
+  return (d.kind === 1) ? DFT_HIT_B : DFT_HIT_A;
+}
+
+function stepDebris(){
+  // Collision is checked every 2 frames (physics still runs every frame).
+  const doCollide = ((frameCount & 1) === 0);
+
+  // Newly spawned debris from chain kills are queued and appended after the loop,
+  // so one debris can't instantly cascade multiple times in the same frame.
+  _dftAddN = 0;
+
+  for (let i = debris.length - 1; i >= 0; i--){
+    const d = debris[i];
+
+    // Physics
+    d.vy += DFT.g;
+    d.vx *= DFT.dragX;
+    d.vy *= DFT.dragY;
+    d.x += d.vx;
+    d.y += d.vy;
+
+    // Life / cull first (cheap)
+    d.life--;
+    if (d.life <= 0 ||
+        d.x > DOT_W + 80 || d.y > DOT_H + 80 || d.x < -120 || d.y < -120){
+      // swap-pop (GC-free)
+      debris[i] = debris[debris.length - 1];
+      debris.pop();
+      continue;
+    }
+
+    if (!doCollide) continue;
+
+    const hb = (d.kind === 1) ? DFT_HIT_B : DFT_HIT_A;
+    const dx = d.x + hb.ox;
+    const dy = d.y + hb.oy;
+    const dw = hb.w;
+    const dh = hb.h;
+
+    if (!rectIntersectsPF(dx, dy, dw, dh)) continue;
+
+    // Chain hit: Enemy B (16x8)
+    for (let j = enemyBs.length - 1; j >= 0; j--){
+      const e = enemyBs[j];
+      const ex = e.x + ENB_HIT.ox;
+      const ey = e.y + ENB_HIT.oy;
+
+      // NOTE: no temporary objects/arrays; all scalars
+      if (!rectIntersectsPF(ex, ey, ENB_HIT.w, ENB_HIT.h)) continue;
+
+      if (rectsOverlap(dx, dy, dw, dh, ex, ey, ENB_HIT.w, ENB_HIT.h)){
+        spawnOrbAt(e.x + ENB_W/2, e.y + ENB_H/2, 1);
+
+        if (_dftAddN < DFT.max){
+          _dftAddKind[_dftAddN] = 1;
+          _dftAddX[_dftAddN] = e.x;
+          _dftAddY[_dftAddN] = e.y - 4;
+          _dftAddN++;
+        }
+
+        addScoreFromEnemyB();
+        sfxEnemyKillChain();
+        // swap-pop
+        enemyBs[j] = enemyBs[enemyBs.length - 1];
+        enemyBs.pop();
+      }
+    }
+
+    // Chain hit: Enemy A (16x16)
+    for (let j = enemies.length - 1; j >= 0; j--){
+      const e = enemies[j];
+      const ex = e.x + ENEMY_HIT.ox;
+      const ey = e.y + ENEMY_HIT.oy;
+
+      if (!rectIntersectsPF(ex, ey, ENEMY_HIT.w, ENEMY_HIT.h)) continue;
+
+      if (rectsOverlap(dx, dy, dw, dh, ex, ey, ENEMY_HIT.w, ENEMY_HIT.h)){
+        spawnOrbAt(e.x + ENEMY_W/2, e.y + ENEMY_H/2);
+
+        if (_dftAddN < DFT.max){
+          _dftAddKind[_dftAddN] = 0;
+          _dftAddX[_dftAddN] = e.x;
+          _dftAddY[_dftAddN] = e.y;
+          _dftAddN++;
+        }
+
+        addScoreFromEnemyA();
+        sfxEnemyKillChain();
+        // swap-pop
+        enemies[j] = enemies[enemies.length - 1];
+        enemies.pop();
+      }
+    }
+
+    // Hit test vs spikes / blocks (fast grid) => debris disappears
+    if (_hitSpikeFast(dx, dy, dw, dh) || _hitBlockFast(dx, dy, dw, dh)){
+      sfxBreak();
+      debris[i] = debris[debris.length - 1];
+      debris.pop();
+      continue;
+    }
+  }
+
+  // Append queued spawns (respect max)
+  for (let k = 0; k < _dftAddN; k++){
+    spawnDebris(_dftAddKind[k], _dftAddX[k], _dftAddY[k]);
+  }
+}
+
+function drawDebris(){
+  const sprA = spriteCanvases[SPR_KEYS.dft0];
+  const sprB = spriteCanvases[SPR_KEYS.dft1];
+
+  for (const d of debris){
+    const x = Math.round(d.x);
+    const y = Math.round(d.y);
+    const spr = (d.kind === 1) ? sprB : sprA;
+    if (spr){
+      dotCtx.drawImage(spr, x, y);
+    } else {
+      dotCtx.fillStyle = '#777';
+      dotCtx.fillRect(x+2, y+2, 12, 12);
+    }
+  }
+}
+
+function spawnArrow(){
+    if (arrows.length >= ARROW.max) return false;
+    // Keep the arrow's initial position inside the playfield (prevents 'shooting into the margin').
+    const x = Math.max(X_MIN + 2, P.x - 6);
+    const y = P.y + 8;
+    arrows.push({ x, y, vx: ARROW.vx, vy: ARROW.vy0, life: ARROW.life });
+    return true;
+  }
+
+  // ----- Physics tuning (dot / frame @60fps) -----
+  const PARAMS = {
+    g: 0.025,
+    flap: 0.88,
+    sideKick: 0.55,
+    turnBrake: 0.55,
+    dragX: 0.988,
+    dragY: 0.995,
+    maxVx: 2.00,
+    maxVy: 2.00,
+    flapFrames: 4,
+
+    // While "turn brake" is active, dampen vertical lift a bit to avoid accidental sky-boosts.
+    // This is a feel-tuning knob: 1.0 = unchanged, smaller = less lift during braking.
+    turnBrakeFrames: 6,
+    turnBrakeFlapMul: 0.70,
+    turnBrakeMaxUp: 0.95, // clamp |vy| upward during braking (vy is negative when rising)
+  };
+
+  // ----- Game state -----
+  let frameCount = 0;
+  let missFrames = 0;
+  let goInputLockUntil = 0;
+  let missHigh = false;
+  let gameStarted = false;
+
+  // Title screen mode
+  let inTitle = true;
+  let titleFrame = 0;
+
+  // Sync the top-left button:
+  // - Title screen => label "RSG" and acts as external link
+  // - In-game / Gameover => label "Title" and acts as ESC (return to title)
+  function updateTitleButtonUI(){
+    const b = document.getElementById('btnTitle');
+    if (!b) return;
+    const mode = inTitle ? 'rsg' : 'title';
+    if (b.dataset.mode === mode) return;
+    b.dataset.mode = mode;
+    b.textContent = inTitle ? 'RSG' : 'Title';
+    b.setAttribute('aria-label', inTitle ? 'RSG Home' : 'Title');
+  }
+
+  // Audio unlock (must be triggered by a user gesture on iOS)
+  let audioUnlocked = false;
+  function audioUnlockOnce(){
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    // Ensure the engine is created / resumed, but do NOT start BGM here.
+    try {
+      // bgmStartOnce() would also unlock, but it starts music; we only unlock.
+      if (typeof bgmLoadBundle === 'function' && typeof bgmEnsureEngine === 'function'){
+        bgmLoadBundle()
+          .then((bundle)=> bgmEnsureEngine(bundle))
+          .catch((_e)=>{});
+      }
+      if (typeof sqaeEnsureStarted === 'function') sqaeEnsureStarted(); // (if present)
+    } catch(_e){}
+  }
+
+  // Initial sync
+  updateTitleButtonUI();
+
+
+  function goTitleNow(){
+    inTitle = true;
+    titleFrame = 0;
+    updateTitleButtonUI();
+    setOverlay(OVL.NONE);
+    // stop audio (safe even if not started)
+    try { bgmStopNow(); } catch(_e){}
+    // clear miss + reset world to a clean "pre-flap" state
+    missFrames = 0;
+    resetGame();
+  }
+
+  function startFromTitle(){
+    audioUnlockOnce();
+    inTitle = false;
+    titleFrame = 0;
+    updateTitleButtonUI();
+    missFrames = 0;
+    resetGame(); // => gameStarted=false, so world stays frozen until first flap
+  }
+
+
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+  function randInt(a, b){ return (a + Math.floor(Math.random() * (b - a + 1))); }
+
+  function minArr(arr){
+    let m = arr[0];
+    for (let i=1;i<arr.length;i++) if (arr[i] < m) m = arr[i];
+    return m;
+  }
+  function maxArr(arr){
+    let m = arr[0];
+    for (let i=1;i<arr.length;i++) if (arr[i] > m) m = arr[i];
+    return m;
+  }
+
+  function rangesOverlap(a1, a2, b1, b2){
+    return !(a2 <= b1 || a1 >= b2);
+  }
+
+  function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh){
+    return !(ax + aw <= bx || ax >= bx + bw || ay + ah <= by || ay >= by + bh);
+  }
+
+  function rectIntersectsPF(x, y, w, h){
+    return rectsOverlap(x, y, w, h, X_MIN, Y_MIN, FIELD_W, FIELD_H);
+  }
+
+  function rectsOverlapPad(ax, ay, aw, ah, bx, by, bw, bh, pad){
+    // Treat A as expanded by pad on all sides (Minkowski sum) to enforce a minimum gap.
+    return rectsOverlap(ax - pad, ay - pad, aw + pad*2, ah + pad*2, bx, by, bw, bh);
+  }
+
+
+  // ----- Cluster patterns -----
+  // 2-block: include diagonal (B- / -B) and its mirrored variant.
+  // 3-block: forbid straight 3-in-a-row/column; include L/step/zigzag with rotations + reflections.
+  function normPattern(pts){
+    let minX = Infinity, minY = Infinity;
+    for (const [x,y] of pts){ if (x < minX) minX = x; if (y < minY) minY = y; }
+    const out = pts.map(([x,y]) => [x - minX, y - minY]);
+    out.sort((a,b)=> (a[0]-b[0]) || (a[1]-b[1]));
+    return out;
+  }
+  function patKey(pts){
+    return pts.map(p => p[0] + ',' + p[1]).join(';');
+  }
+  function genVariants(basePatterns){
+    const set = new Map();
+    const rot90 = ([x,y]) => [y, -x];
+    const reflX = ([x,y]) => [-x, y];
+    for (const base of basePatterns){
+      const seeds = [base, base.map(reflX)];
+      for (const seed of seeds){
+        let pts = seed;
+        for (let r=0;r<4;r++){
+          const norm = normPattern(pts);
+          const key = patKey(norm);
+          if (!set.has(key)) set.set(key, norm);
+          pts = pts.map(rot90);
+        }
+      }
+    }
+    return Array.from(set.values());
+  }
+
+  const PATTERNS = {
+    1: [ [[0,0]] ],
+    2: genVariants([
+      [[0,0],[1,0]],   // adjacent
+      [[0,0],[1,1]],   // diagonal
+    ]),
+    3: genVariants([
+      [[0,0],[1,0],[0,1]], // L (includes "BB/-B" via rotation/reflection)
+      [[0,0],[0,1],[1,2]], // step: B-/B-/-B (and variants)
+      [[1,0],[0,1],[1,2]], // zigzag: -B/B-/-B (and variants)
+    ]),
+  };
+
+
+  // Spike cluster patterns:
+  // Base pattern for 3: diagonal with 8dot shift (x += 1 tile) and 8dot gap vertically (y += 2 tiles):
+  // [[0,0],[1,2],[2,4]] then expanded by 90° rotations + reflections.
+  const SPIKE_PATTERNS = {
+    1: [ [[0,0]] ],
+    2: genVariants([
+      [[0,0],[1,2]],
+    ]),
+    3: genVariants([
+      [[0,0],[1,2],[2,4]],
+    ]),
+  };
+
+  function resolveAabbBounce(ent, w, h, rect, bounce=1.0){
+    const ax1 = ent.x, ay1 = ent.y, ax2 = ent.x + w, ay2 = ent.y + h;
+    const bx1 = rect.x, by1 = rect.y, bx2 = rect.x + rect.w, by2 = rect.y + rect.h;
+
+    if (ax2 <= bx1 || ax1 >= bx2 || ay2 <= by1 || ay1 >= by2) return false;
+
+    const overlapX = Math.min(ax2, bx2) - Math.max(ax1, bx1);
+    const overlapY = Math.min(ay2, by2) - Math.max(ay1, by1);
+
+    const acx = (ax1 + ax2) * 0.5;
+    const acy = (ay1 + ay2) * 0.5;
+    const bcx = (bx1 + bx2) * 0.5;
+    const bcy = (by1 + by2) * 0.5;
+
+    if (overlapX < overlapY){
+      // Resolve on X
+      if (acx < bcx) ent.x -= overlapX;
+      else ent.x += overlapX;
+      ent.vx = -ent.vx * bounce;
+    } else {
+      // Resolve on Y
+      if (acy < bcy) ent.y -= overlapY;
+      else ent.y += overlapY;
+      ent.vy = -ent.vy * bounce;
+    }
+    return true;
+  }
+
+  function clampPlayerToBounds(){
+    if (P.x < X_MIN) { P.x = X_MIN; P.vx = 0; }
+    if (P.x > X_MAX) { P.x = X_MAX; P.vx = 0; }
+    if (P.y < Y_MIN) { P.y = Y_MIN; P.vy = 0; }
+    // No bottom clamp: player can fall out of the screen (MISS when fully gone).
+  }
+
+  function getGroupCount(){
+    const s = new Set();
+    for (const b of blocks) s.add(b.gid);
+    return s.size;
+  }
+
+  function getSpikeGroupCount(){
+    const s = new Set();
+    for (const sp of spikes) s.add(sp.gid);
+    return s.size;
+  }
+  
+  // ----- Spawn Footprint v1.6 : unified spawn rules (groups) -----
+  // unit: dot, cell_unit: 8x8 dot
+  // distance: AABB edge-to-edge >= clearance
+  // default_clearance: 0 (only listed pairs apply)
+  // note: enemyB has no clearance rules (default 0). overlap with block/spike/enemyA is allowed.
+
+  const FP = {
+    CELL: 8,
+    FORBID_BOTTOM: 16,     // for block_group + spike_group
+    FORBID_ENEMY_TOP: 16,  // for enemyA + enemyB
+    FORBID_ENEMY_BOTTOM: 16,
+    CLEAR_BLOCK_ENEMY_A: 8,
+    CLEAR_SPIKE_ENEMY_A: 8,
+    CLEAR_BLOCK_BLOCK: 16,
+    CLEAR_BLOCK_SPIKE: 16,
+    CLEAR_SPIKE_SPIKE: 16,
+  CLEAR_ENEMY_A_ENEMY_A: 8,
+  };
+
+
+  function aabbFromRect(x,y,w,h){ return { x1:x, y1:y, x2:x+w, y2:y+h }; }
+  function aabbUnion(a,b){
+    return {
+      x1: Math.min(a.x1,b.x1),
+      y1: Math.min(a.y1,b.y1),
+      x2: Math.max(a.x2,b.x2),
+      y2: Math.max(a.y2,b.y2),
+    };
+  }
+  function aabbEdgeDist(a,b){
+    let dx = 0, dy = 0;
+    if (a.x2 < b.x1) dx = b.x1 - a.x2;
+    else if (b.x2 < a.x1) dx = a.x1 - b.x2;
+    if (a.y2 < b.y1) dy = b.y1 - a.y2;
+    else if (b.y2 < a.y1) dy = a.y1 - b.y2;
+    return Math.hypot(dx, dy);
+  }
+
+  function isAabbForbiddenBottom(a){
+    const bottomLine = Y_MIN + FIELD_H - FP.FORBID_BOTTOM;
+    return a.y2 > bottomLine;
+  }
+  function isAabbForbiddenEnemy(a){
+    const topLine = Y_MIN + FP.FORBID_ENEMY_TOP;
+    const bottomLine = Y_MIN + FIELD_H - FP.FORBID_ENEMY_BOTTOM;
+    return (a.y1 < topLine) || (a.y2 > bottomLine);
+  }
+
+  function buildGroupAabbsFromTiles(items){
+    // items: array of {gid, x,y,w,h} tiles already placed in dot units
+    const map = new Map();
+    for (const it of items){
+      const a = aabbFromRect(it.x, it.y, it.w, it.h);
+      const g = map.get(it.gid);
+      if (!g) map.set(it.gid, { gid: it.gid, aabb: a });
+      else g.aabb = aabbUnion(g.aabb, a);
+    }
+    return Array.from(map.values());
+  }
+  function getBlockGroupAabbs(){ return buildGroupAabbsFromTiles(blocks); }
+  function getSpikeGroupAabbs(){ return buildGroupAabbsFromTiles(spikes); }
+
+  function getEnemyASweepAabbs(){
+    const out = [];
+    for (const e of enemies){
+      const r = enemyASweepRectFromParams(e.x, e.y, e.mode, e.minY, e.maxY);
+      out.push({ id: e.id, aabb: aabbFromRect(r.x, r.y, r.w, r.h) });
+    }
+    return out;
+  }
+
+  function isGroupPlacementOk(kind, aabb){
+    // Forbidden areas
+    if (kind === 'block_group' || kind === 'spike_group'){
+      if (isAabbForbiddenBottom(aabb)) return false;
+    }
+
+    const blockGs = getBlockGroupAabbs();
+    const spikeGs = getSpikeGroupAabbs();
+    const enemyAs = getEnemyASweepAabbs();
+
+    if (kind === 'block_group'){
+      for (const g of blockGs){
+        if (aabbEdgeDist(aabb, g.aabb) < FP.CLEAR_BLOCK_BLOCK) return false;
+      }
+      for (const g of spikeGs){
+        if (aabbEdgeDist(aabb, g.aabb) < FP.CLEAR_BLOCK_SPIKE) return false;
+      }
+      for (const e of enemyAs){
+        if (aabbEdgeDist(aabb, e.aabb) < FP.CLEAR_BLOCK_ENEMY_A) return false;
+      }
+    } else if (kind === 'spike_group'){
+      for (const g of spikeGs){
+        if (aabbEdgeDist(aabb, g.aabb) < FP.CLEAR_SPIKE_SPIKE) return false;
+      }
+      for (const g of blockGs){
+        if (aabbEdgeDist(aabb, g.aabb) < FP.CLEAR_BLOCK_SPIKE) return false;
+      }
+      for (const e of enemyAs){
+        if (aabbEdgeDist(aabb, e.aabb) < FP.CLEAR_SPIKE_ENEMY_A) return false;
+      }
+    }
+    return true;
+  }
+
+  function bboxFromCells(cells){
+    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    for (const [tx,ty] of cells){
+      if (tx<minX) minX=tx;
+      if (ty<minY) minY=ty;
+      if (tx>maxX) maxX=tx;
+      if (ty>maxY) maxY=ty;
+    }
+    return { minX, minY, maxX, maxY, w: (maxX-minX+1), h: (maxY-minY+1) };
+  }
+  function normalizeCells(cells){
+    const bb = bboxFromCells(cells);
+    return cells.map(([tx,ty]) => [tx - bb.minX, ty - bb.minY]);
+  }
+
+  // ----- Block group generation (1..4, 8-neighbors, max bbox 3x3 tiles) -----
+  function genBlockCells(count){
+    // returns normalized tile cells, starting at (0,0)
+    const cells = [[0,0]];
+    const set = new Set(['0,0']);
+    const NEI8 = [
+      [-1,-1],[0,-1],[1,-1],
+      [-1, 0],       [1, 0],
+      [-1, 1],[0, 1],[1, 1],
+    ];
+    for (let k=1;k<count;k++){
+      let candidates = [];
+      for (const [cx,cy] of cells){
+        for (const [dx,dy] of NEI8){
+          const nx = cx+dx, ny = cy+dy;
+          const key = nx+','+ny;
+          if (set.has(key)) continue;
+          candidates.push([nx,ny]);
+        }
+      }
+
+      // shuffle candidates
+      for (let i=candidates.length-1;i>0;i--){
+        const j = randInt(0, i);
+        const tmp=candidates[i]; candidates[i]=candidates[j]; candidates[j]=tmp;
+      }
+
+      let placed = false;
+      for (const [nx,ny] of candidates){
+        const trial = cells.concat([[nx,ny]]);
+        const bb = bboxFromCells(trial);
+        if (bb.w <= 3 && bb.h <= 3){
+          cells.push([nx,ny]);
+          set.add(nx+','+ny);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed){
+        return null; // failed; caller should retry
+      }
+    }
+    return normalizeCells(cells);
+  }
+
+  function pickSpawnXYForGroup(wDot, hDot, x0, y0, attempt){
+    let ax, ay;
+
+    if (x0 !== undefined && x0 !== null) {
+      ax = x0;
+    } else {
+      ax = X_MIN - 32 - randInt(0, 64) - attempt * 8;
+    }
+
+    if (y0 !== undefined && y0 !== null) {
+      ay = y0;
+    } else {
+      const yMin = Y_MIN;
+      const yMax = (Y_MIN + FIELD_H - FP.FORBID_BOTTOM - hDot);
+      if (yMax < yMin) return null;
+      ay = randInt(yMin, yMax);
+    }
+
+    return { ax, ay };
+  }
+
+  function spawnBlockGroup(x0, y0){
+    for (let attempt=0; attempt<60; attempt++){
+      const n = randInt(1, 4); // 1..4
+      const cells = genBlockCells(n);
+      if (!cells) continue;
+
+      const bb = bboxFromCells(cells);
+      const wDot = bb.w * FP.CELL;
+      const hDot = bb.h * FP.CELL;
+
+      const xy = pickSpawnXYForGroup(wDot, hDot, x0, y0, attempt);
+      if (!xy) return false;
+
+      const aabb = aabbFromRect(xy.ax, xy.ay, wDot, hDot);
+      if (!isGroupPlacementOk('block_group', aabb)) continue;
+
+      const gid = nextGid++;
+      for (const [tx,ty] of cells){
+        blocks.push({ x: xy.ax + tx*FP.CELL, y: xy.ay + ty*FP.CELL, w: FP.CELL, h: FP.CELL, gid });
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // ----- Spike group generation (1..3; group_2 / group_3 instances = {base, rot90(base), flipX(base)} ) -----
+  function rot90Cells(cells){
+    const bb = bboxFromCells(cells);
+    return cells.map(([x,y]) => [y, (bb.w - 1 - x)]);
+  }
+  function flipXCells(cells){
+    const bb = bboxFromCells(cells);
+    return cells.map(([x,y]) => [(bb.w - 1 - x), y]);
+  }
+  function spikeInstanceCells(baseCells, which){
+    const base = normalizeCells(baseCells);
+    if (which === 'base') return base;
+    if (which === 'rot90') return normalizeCells(rot90Cells(base));
+    if (which === 'flipX') return normalizeCells(flipXCells(base));
+    return base;
+  }
+
+  function pickSpikeCells(){
+    const r = randInt(1, 3); // 1..3
+    if (r === 1){
+      return [[0,0]];
+    }
+    if (r === 2){
+      const baseCells = [[0,0],[1,2]];
+      const which = ['base','rot90','flipX'][randInt(0,2)];
+      return spikeInstanceCells(baseCells, which);
+    }
+    // r === 3
+    const baseCells = [[0,0],[1,2],[2,4]];
+    const which = ['base','rot90','flipX'][randInt(0,2)];
+    return spikeInstanceCells(baseCells, which);
+  }
+
+  function spawnSpikeGroup(x0, y0){
+    for (let attempt=0; attempt<60; attempt++){
+      const cells = pickSpikeCells();
+      const bb = bboxFromCells(cells);
+      const wDot = bb.w * FP.CELL;
+      const hDot = bb.h * FP.CELL;
+
+      const xy = pickSpawnXYForGroup(wDot, hDot, x0, y0, attempt);
+      if (!xy) return false;
+
+      const aabb = aabbFromRect(xy.ax, xy.ay, wDot, hDot);
+      if (!isGroupPlacementOk('spike_group', aabb)) continue;
+
+      const gid = nextSid++;
+      for (const [tx,ty] of cells){
+        spikes.push({ x: xy.ax + tx*FP.CELL, y: xy.ay + ty*FP.CELL, w: FP.CELL, h: FP.CELL, gid });
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // Seed initial blocks/spikes
+  function seedMap(){
+    blocks.length = 0;
+    nextGid = 1;
+
+    const xs = [X_MIN + 48, X_MIN + 200];
+    for (let i=0;i<xs.length;i++){
+      spawnBlockGroup(xs[i], undefined);
+    }
+  }
+
+
+  function applyScrollStep(){
+    SCROLL.frac += (SCROLL.baseSpeed * SCROLL.speedMul);
+    const step = (SCROLL.frac | 0);
+    SCROLL.step = step;
+    if (step > 0){
+      SCROLL.frac -= step;
+      SCROLL.total += step;
+
+      // Shift world objects (player is NOT shifted)
+      for (const b of blocks) b.x += step;
+      for (const s of spikes) s.x += step;
+      for (const e of enemies) e.x += step;
+      for (const a of arrows) a.x += step;
+      for (const o of orbs) o.x += step;
+      for (const d of debris) d.x += step;
+    }
+  }
+
+  function cleanupBlocks(){
+    for (let i = blocks.length - 1; i >= 0; i--){
+      const b = blocks[i];
+      if (b.x > DOT_W + 32 || b.y < -64 || b.y > DOT_H + 64){
+        blocks.splice(i, 1);
+      }
+    }
+  }
+
+  function cleanupSpikes(){
+    for (let i = spikes.length - 1; i >= 0; i--){
+      const s = spikes[i];
+      if (s.x > DOT_W + 32 || s.y < -64 || s.y > DOT_H + 64){
+        spikes.splice(i, 1);
+      }
+    }
+  }
+
+  function ensureMapDensity(){
+    if (MAP.spawnCd > 0) { MAP.spawnCd--; return; }
+
+    const g = getGroupCount();
+    if (g >= MAP.targetGroups) return;
+
+    const ok = spawnBlockGroup(undefined, undefined);
+    MAP.spawnCd = ok ? MAP.spawnCdMax : 6;
+  }
+
+  function seedSpikes(){
+    spikes.length = 0;
+    nextSid = 1;
+
+    const xs = [ ];
+    for (let i=0;i<xs.length;i++){
+      spawnSpikeGroup(xs[i], undefined);
+    }
+  }
+
+  function ensureSpikeDensity(){
+    if (SPIKES.spawnCd > 0) { SPIKES.spawnCd--; return; }
+
+    const g = getSpikeGroupCount();
+    if (g >= SPIKES.targetGroups) return;
+
+    const ok = spawnSpikeGroup(undefined, undefined);
+    SPIKES.spawnCd = ok ? SPIKES.spawnCdMax : 10;
+  }
+
+  function stepArrows(){
+    // 矢とブロック/スパイクの直接判定用ヘルパー
+    function checkSolidHitDirect(tx, ty, w, h) {
+      // 1. ブロック判定
+      for (const b of blocks) {
+        // 足切りフィルタ
+        if (b.x < tx - 16 || b.x > tx + w + 16) continue;
+        if (b.y < ty - 16 || b.y > ty + h + 16) continue;
+
+        // X軸を1dot食い込ませる（x+1, w-2）
+        if (rectsOverlap(tx, ty, w, h, b.x + 1, b.y, b.w - 2, b.h)) return true;
+      }
+      // 2. スパイク判定
+      for (const s of spikes) {
+        if (s.x < tx - 16 || s.x > tx + w + 16) continue;
+        if (s.y < ty - 16 || s.y > ty + h + 16) continue;
+        
+        if (rectsOverlap(tx, ty, w, h, s.x + SPIKE_HIT.ox, s.y + SPIKE_HIT.oy, SPIKE_HIT.w, SPIKE_HIT.h)) return true;
+      }
+      return false;
+    }
+
+    for (let i = arrows.length - 1; i >= 0; i--){
+      const a = arrows[i];
+      a.vy += ARROW.g;
+      a.vx *= ARROW.dragX;
+      a.vy *= ARROW.dragY;
+
+      // --- swept move ---
+      const px = a.x, py = a.y;
+      const nx = px + a.vx;
+      const ny = py + a.vy;
+
+      const dx = nx - px, dy = ny - py;
+      const maxD = Math.max(Math.abs(dx), Math.abs(dy));
+      
+      // 【最適化】矢の幅(6)までは安全に広げられるため 4->6 に変更
+      const stepDist = 6; 
+      const n = Math.max(1, Math.ceil(maxD / stepDist));
+
+      let hitSolid = false;
+      
+      // 軌跡上の衝突チェック
+      for (let s = 1; s <= n; s++){
+        const t = s / n;
+        const sx = px + dx * t + ARROW_HIT.ox;
+        const sy = py + dy * t + ARROW_HIT.oy;
+        
+        if (checkSolidHitDirect(sx, sy, ARROW_HIT.w, ARROW_HIT.h)){
+          hitSolid = true;
+          break;
+        }
+      }
+
+      if (hitSolid){
+        sfxBreak();
+        arrows.splice(i, 1);
+        continue;
+      }
+
+      // 当たってないなら位置確定
+      a.x = nx;
+      a.y = ny;
+      
+      const ax = a.x + ARROW_HIT.ox;
+      const ay = a.y + ARROW_HIT.oy;
+
+      // 画面外判定
+      if (!rectIntersectsPF(ax, ay, ARROW_HIT.w, ARROW_HIT.h)){
+        arrows.splice(i, 1);
+        continue;
+      }
+
+      // --- 敵との判定 ---
+      let killed = false;
+
+      // Enemy B
+      for (let j = enemyBs.length - 1; j >= 0; j--){
+        const e = enemyBs[j];
+        const ex = e.x + ENB_HIT.ox;
+        const ey = e.y + ENB_HIT.oy;
+        if (!rectIntersectsPF(ex, ey, ENB_HIT.w, ENB_HIT.h)) continue;
+
+        if (rectsOverlap(ax, ay, ARROW_HIT.w, ARROW_HIT.h, ex, ey, ENB_HIT.w, ENB_HIT.h)){
+          spawnOrbAt(e.x + ENB_W/2, e.y + ENB_H/2, 1);
+          spawnDebrisFromEnemyB(e.x, e.y);
+          addScoreFromEnemyB();
+          sfxEnemyKill();
+          enemyBs.splice(j, 1);
+          killed = true;
+          break;
+        }
+      }
+
+      // Enemy A
+      if (!killed){
+        for (let j = enemies.length - 1; j >= 0; j--){
+          const e = enemies[j];
+          const ex = e.x + ENEMY_HIT.ox;
+          const ey = e.y + ENEMY_HIT.oy;
+          if (!rectIntersectsPF(ex, ey, ENEMY_HIT.w, ENEMY_HIT.h)) continue;
+
+          if (rectsOverlap(ax, ay, ARROW_HIT.w, ARROW_HIT.h, ex, ey, ENEMY_HIT.w, ENEMY_HIT.h)){
+            spawnOrbAt(e.x + ENEMY_W/2, e.y + ENEMY_H/2);
+            spawnDebrisFromEnemyA(e.x, e.y);
+            addScoreFromEnemyA();
+            sfxEnemyKill();
+            enemies.splice(j, 1);
+            killed = true;
+            break;
+          }
+        }
+      }
+
+      if (killed){
+        arrows.splice(i, 1);
+        continue;
+      }
+
+      a.life--;
+      if (a.life <= 0 ||
+          a.x < -32 || a.x > DOT_W + 32 ||
+          a.y < (HUD_H - 64) || a.y > DOT_H + 32){
+        arrows.splice(i, 1);
+      }
+    }
+  }
+
+
+function isSqueezedRight(){
+  // Squeeze-only hitbox (player top-left anchor)
+  const bodyOX = 1;
+  const bodyOY = 6;
+  const bodyW  = 15;
+  const bodyH  = 8;
+
+  const bodyX = P.x + bodyOX;
+  const bodyY = P.y + bodyOY;
+
+  const bodyR = bodyX + bodyW;
+
+  if (bodyR < RIGHT_WALL_X - 0.001) return false;
+
+  for (const b of blocks){
+    if (b.x > RIGHT_WALL_X + 0.001) continue;
+
+    if (!rangesOverlap(bodyY, bodyY + bodyH, b.y, b.y + b.h)) continue;
+
+    const touchFromLeft = (b.x < bodyX) && (b.x + b.w >= bodyX - 0.001);
+
+    const overlapFromLeft = (b.x < bodyX) && rectsOverlap(bodyX, bodyY, bodyW, bodyH, b.x, b.y, b.w, b.h);
+
+    if (touchFromLeft || overlapFromLeft) return true;
+  }
+  return false;
+}
+
+
+
+  function gameOver(){
+    if (missFrames > 0) {
+      missFrames--;
+      return;
+    }
+    missFrames = 60;
+    goInputLockUntil = performance.now() + 1000;
+    missHigh = recordsMaybeAdd(HUD.score|0, HUD.mult|0);
+
+    bgmStopNow();
+    playGameOverPhrase();
+  }
+
+
+  function resetGame(){
+    // Player reset
+    // 右壁から 24dot 空けて「右寄り」スタート（窮屈すぎない距離）
+    P.x = (X_MIN + FIELD_W - PLAYER_W - 24);
+    P.y = Y_MIN + (FIELD_H/2 - PLAYER_H/2);
+    P.vx = 0;
+    P.vy = 0;
+    P.anim = 0;
+    P.flapLeft = 0;
+    P.turnBrakeLeft = 0;
+
+    // Start gate
+    gameStarted = false;
+
+
+    // HUD reset
+    HUD.score = 0;
+    HUD.timeSec = 0;
+    HUD.mult = 1;
+        lifeReset();
+// World reset
+    enemies.length = 0;
+    enemyBs.length = 0;
+    nextBid = 1;
+    pendingEnemyBGroup = null;
+    ENB.spawnCd = 60;
+    ENB.recentYs.length = 0;
+    resetEnemyC();
+    orbs.length = 0;
+    debris.length = 0;
+    arrows.length = 0;
+    arrowCd = 0;
+    SCROLL.frac = 0;
+    SCROLL.step = 0;
+    SCROLL.total = 0;
+
+    frameCount = 0;
+    missFrames = 0;
+
+    MAP.spawnCd = 0;
+    if (typeof SPAWN !== 'undefined') SPAWN.recentYs.length = 0;
+    
+    missHigh = false;
+
+    p8Reset();
+
+    seedMap();
+    seedSpikes();
+    seedEnemies();
+    ensureMapDensity();
+  }
+
+  // --- init ---
+  resetGame();
+
+function stepOneFrame(){
+    pollGamepad();
+    syncEdges();
+
+    // 1. Always allow ESC to Title
+    if (Actions.escJust){
+      setOverlay(OVL.NONE); 
+      goTitleNow();
+      return;
+    }
+
+    // 2. Overlay Switching Logic
+    if (Actions.howtoJust) {
+      if (overlayState === OVL.HOWTO) setOverlay(overlayPrevState);
+      else setOverlay(OVL.HOWTO);
+    }
+    else if (Actions.pauseJust || Actions.tapPauseJust) {
+      if (overlayState === OVL.HOWTO) { /* ignore */ }
+      else if (overlayState === OVL.PAUSE) setOverlay(OVL.NONE);
+      else setOverlay(OVL.PAUSE);
+    }
+    else if (Actions.enterJust || Actions.tapEnterJust) {
+      if (overlayState === OVL.HOWTO) setOverlay(overlayPrevState);
+      else if (overlayState === OVL.PAUSE) setOverlay(OVL.NONE);
+      else {
+        // Tap/Enter behavior on Title: allow both keyboard Enter and canvas tap.
+        if (inTitle) {
+          startFromTitle();
+          return;
+        }
+        // Game Over: allow restart via canvas tap (and keyboard Enter).
+        if (missFrames > 0) {
+          if (performance.now() < goInputLockUntil) return;
+          resetGame();
+          return;
+        }
+      }
+    }
+
+    // 3. Freeze Game if Overlay Active
+    if (overlayState !== OVL.NONE) return;
+
+    // --- Below is Normal Game Logic ---
+    frameCount++;
+    
+    if (inTitle) return;
+
+    if (missFrames > 0) return;
+
+    // Start gate
+    if (!gameStarted){
+      if (Actions.flapJust){
+        gameStarted = true;
+        bgmStartOnce();
+        sfxPlayFlap();
+        p8Reset();
+        const dt0 = p8GetTickSec();
+        p8Tick(dt0);
+      } else {
+        return;
+      }
+    }
+    
+
+  // HUD time
+  HUD.timeSec += (1/60);
+
+
+  // Life meter decay (does not run before the first flap)
+  lifeStep();
+  // Scroll world (player is not shifted)
+  applyScrollStep();
+
+  // Map management
+  cleanupBlocks();
+  cleanupSpikes();
+  cleanupEnemies();
+
+  // Phase8 timeline (tick-based)
+  P8.tickAcc += (1/60);
+
+  let guard = 0;
+  while (guard++ < 12){
+    const dt = p8GetTickSec();     // 「今のセグメント」の tickSec
+    if (P8.tickAcc < dt) break;
+    P8.tickAcc -= dt;
+    p8Tick(dt);
+  }
+
+  stepEnemies();
+  stepEnemyB();
+  stepEnemyC();
+
+  if (arrowCd > 0) arrowCd--;
+
+  // Shoot
+  if (Actions.shootJust && arrowCd === 0){
+    if (spawnArrow()){
+      sfxShot();
+      arrowCd = ARROW.cooldown;
+    }
+  }
+
+  // Flap impulse
+  if (Actions.flapJust){
+    sfxPlayFlap();
+
+    // Horizontal intent is sampled on the flap edge.
+    const dir = (Actions.left && !Actions.right) ? -1 : ((Actions.right && !Actions.left) ? 1 : 0);
+
+    // Default: full lift.
+    let flapMul = 1.0;
+
+    // If we are in (or entering) turn-brake, dampen lift.
+    if (P.turnBrakeLeft > 0) flapMul = PARAMS.turnBrakeFlapMul;
+
+    if (dir !== 0){
+      if (P.vx * dir < 0){
+        // Turn brake (reversal): slow/stop X, and activate a short "brake window".
+        P.vx += dir * PARAMS.turnBrake;
+        if (P.vx * dir > 0) P.vx = 0;
+
+        P.turnBrakeLeft = PARAMS.turnBrakeFrames;
+        flapMul = PARAMS.turnBrakeFlapMul;
+      } else {
+        P.vx += dir * PARAMS.sideKick;
+      }
+    }
+
+    // Apply lift (vy is negative when rising)
+    P.vy -= PARAMS.flap * flapMul;
+
+    // Optional extra safety clamp (prevents a single brake-flap from giving too much altitude)
+    if (flapMul < 0.999){
+      P.vy = Math.max(P.vy, -PARAMS.turnBrakeMaxUp);
+    }
+
+    P.flapLeft = PARAMS.flapFrames;
+  }
+    // Gravity
+    P.vy += PARAMS.g;
+
+    // Drag
+    P.vx *= PARAMS.dragX;
+    P.vy *= PARAMS.dragY;
+
+    // Clamp velocities
+    P.vx = clamp(P.vx, -PARAMS.maxVx, PARAMS.maxVx);
+    P.vy = clamp(P.vy, -PARAMS.maxVy, PARAMS.maxVy);
+
+    // Integrate
+    P.x += P.vx;
+    P.y += P.vy;
+
+    // Bounds
+    clampPlayerToBounds();
+
+  // Collide with blocks (bounce) using the reduced hitbox
+  {
+    const HB = { x: P.x + PLAYER_HIT.ox, y: P.y + PLAYER_HIT.oy, vx: P.vx, vy: P.vy };
+
+    // --- block hit SFX: fast impact only (one-shot with cooldown) ---
+    if (P.blockHitCd == null) P.blockHitCd = 0;
+    if (P.blockHitCd > 0) P.blockHitCd--;
+
+    const BLOCK_HIT_V = 1.0;   // dot/frame (tweak)
+    const BLOCK_HIT_CD = 8;    // frames (prevents buzzing while sliding)
+
+    for (const b of blocks){
+      const pvx = HB.vx;
+      const pvy = HB.vy;
+
+      const hit = resolveAabbBounce(HB, PLAYER_HIT.w, PLAYER_HIT.h, b, BOUNCE);
+      if (!hit) continue;
+
+      // Which axis bounced?
+      const hitX = HB.vx !== pvx;
+      const hitY = HB.vy !== pvy;
+
+      // Impact = pre-collision speed component that got flipped (stronger of X/Y)
+      const impact = Math.max(
+        hitX ? Math.abs(pvx) : 0,
+        hitY ? Math.abs(pvy) : 0
+      );
+
+      if (impact >= BLOCK_HIT_V && P.blockHitCd === 0){
+        sfxBlockHit();
+        P.blockHitCd = BLOCK_HIT_CD;
+      }
+    }
+
+    P.x = HB.x - PLAYER_HIT.ox;
+    P.y = HB.y - PLAYER_HIT.oy;
+    P.vx = HB.vx;
+    P.vy = HB.vy;
+  }
+
+
+
+    // Bounds again (in case the bounce shoved us out)
+    clampPlayerToBounds();
+
+    // Rebuild spatial grid for fast solid collision (blocks/spikes)
+    _rebuildSolidGrid();
+
+    // Projectiles (so arrows can delete an enemy before player collision check)
+    stepArrows();
+
+    // Debris chain (kills enemies before the player collision check)
+    stepDebris();
+
+    // Orbs (spawned by kills)
+    stepOrbs();
+
+    // Enemy C (under-fish) trigger (rising)
+    enemyCCheckTrigger();
+
+    // Collide with enemies => MISS
+    {
+      const hbX = P.x + PLAYER_HIT.ox;
+      const hbY = P.y + PLAYER_HIT.oy;
+      const hbW = PLAYER_HIT.w;
+      const hbH = PLAYER_HIT.h;
+
+      // Enemy A
+      for (const e of enemies){
+        // Enemy A circle center (16x16 sprite center)
+        const ecx = e.x + 8;
+        const ecy = e.y + 8;
+        // PF cull by circle AABB (cheap)
+        if (!rectIntersectsPF(ecx - ENM_A_R, ecy - ENM_A_R, ENM_A_R*2, ENM_A_R*2)) continue;
+        if (circleRectOverlap(ecx, ecy, ENM_A_RSQ, hbX, hbY, hbW, hbH)){
+          gameOver();
+          return;
+        }
+      }
+
+      // Enemy B
+      for (const e of enemyBs){
+        if (!rectIntersectsPF(e.x + ENB_HIT.ox, e.y + ENB_HIT.oy, ENB_HIT.w, ENB_HIT.h)) continue;
+        if (rectsOverlap(
+          hbX, hbY, hbW, hbH,
+          e.x + ENB_HIT.ox, e.y + ENB_HIT.oy, ENB_HIT.w, ENB_HIT.h
+        )){
+          gameOver();
+          return;
+        }
+      }
+
+  // Spike blocks (instant MISS)
+  for (const s of spikes){
+    if (!rectIntersectsPF(s.x + SPIKE_HIT.ox, s.y + SPIKE_HIT.oy, SPIKE_HIT.w, SPIKE_HIT.h)) continue;
+    if (rectsOverlap(
+      hbX, hbY, hbW, hbH,
+      s.x + SPIKE_HIT.ox, s.y + SPIKE_HIT.oy, SPIKE_HIT.w, SPIKE_HIT.h
+    )){
+      gameOver();
+      return;
+    }
+  }
+      // Enemy C (under-fish)
+      if (enemyCCollidesPlayer()){
+        gameOver();
+        return;
+      }
+    }
+
+    // Fell / left playfield => MISS (use full 16x16 body, not reduced hitbox)
+    const PF_R = X_MIN + FIELD_W;
+    const PF_B = Y_MIN + FIELD_H;
+    if (P.x + PLAYER_W <= X_MIN || P.x >= PF_R || P.y + PLAYER_H <= Y_MIN || P.y >= PF_B){
+      gameOver();
+      return;
+    }
+
+    // Right-edge squeeze => MISS
+    if (isSqueezedRight()){
+      gameOver();
+      return;
+    }
+
+    // Flap frame countdown for sprite swap
+    if (P.flapLeft > 0) P.flapLeft--;
+    if (P.turnBrakeLeft > 0) P.turnBrakeLeft--;
+
+    // Animation tick
+    P.anim = (P.anim + 1) % 30;
+  }
+
+  // ----- Draw helpers -----
+  function clearDot(){
+    dotCtx.fillStyle = '#000';
+    dotCtx.fillRect(0,0,DOT_W,DOT_H);
+  }
+
+  function drawBlocks(){
+    const spr = spriteCanvases[SPR_KEYS.blc0];
+    for (const b of blocks){
+      const x = Math.round(b.x);
+      const y = Math.round(b.y);
+      if (spr){
+        // Treat as 8x8 (top-left) even if sprite canvas is 16x16
+        dotCtx.drawImage(spr, 0, 0, 8, 8, x, y, 8, 8);
+      } else {
+        dotCtx.fillStyle = '#444';
+        dotCtx.fillRect(x, y, b.w, b.h);
+      }
+    }
+  }
+  function drawSpikes(){
+    const spr = spriteCanvases[SPR_KEYS.blc1];
+    for (const s of spikes){
+      const x = Math.round(s.x);
+      const y = Math.round(s.y);
+      if (spr){
+        dotCtx.drawImage(spr, 0, 0, 8, 8, x, y, 8, 8);
+      } else {
+        dotCtx.fillStyle = '#a00';
+        dotCtx.fillRect(x, y, s.w, s.h);
+      }
+    }
+  }
+
+  function drawEnemies(){
+    // Enemy A (16x16)
+    const sprA = spriteCanvases[SPR_KEYS.enm0];
+    for (const e of enemies){
+      const x = Math.round(e.x);
+      const y = Math.round(e.y);
+      if (sprA){
+        // bobは現状、staticだけ90°反時計回り（見た目）に回す
+        if (e.mode === 'static'){
+          dotCtx.save();
+          dotCtx.translate(x + ENEMY_W/2, y + ENEMY_H/2);
+          dotCtx.rotate(-Math.PI / 2); // 反時計回り90°（Canvasは見た目が逆になりやすいのでマイナス）
+          dotCtx.drawImage(sprA, -ENEMY_W/2, -ENEMY_H/2);
+          dotCtx.restore();
+
+        } else {
+          // bob（現状のまま）
+          dotCtx.drawImage(sprA, x, y);
+        }
+      } else {
+      dotCtx.fillStyle = '#f0f';
+      dotCtx.fillRect(x, y, ENEMY_W, ENEMY_H);
+    }
+  }
+
+    // Enemy B (16x8)
+    const sprB = spriteCanvases[SPR_KEYS.arr1];
+    for (const e of enemyBs){
+      const x = Math.round(e.x);
+      const y = Math.round(e.y);
+      if (sprB){
+        dotCtx.drawImage(sprB, x, y);
+      } else {
+        dotCtx.fillStyle = '#f70';
+        dotCtx.fillRect(x, y, ENB_W, ENB_H);
+      }
+    }
+
+    // Enemy C (under-fish) (16x16)
+    if (enemyCIsVisible()){
+      const sprC = spriteCanvases[SPR_KEYS.enm1];
+      const x = Math.round(enemyC.x);
+      const y = Math.round(enemyCVisualY());
+      if (sprC){
+        dotCtx.drawImage(sprC, x, y);
+      } else {
+        dotCtx.fillStyle = '#3cf';
+        dotCtx.fillRect(x, y, ENC_W, ENC_H);
+      }
+    }
+
+  }
+
+function drawOrbs(){
+  const spr = spriteCanvases[SPR_KEYS.itm1];
+  for (const o of orbs){
+    const x = Math.round(o.x) + 1;
+    const y = Math.round(o.y) + 1;
+
+    // Orange orb: tinted sprite (falls back to solid fill)
+    if ((o.kind|0) === 1){
+      const ospr = getOrbOrangeSprite();
+      if (ospr){
+        dotCtx.drawImage(ospr, 0, 0, ORB_W, ORB_H, x, y, ORB_W, ORB_H);
+      } else {
+        dotCtx.fillStyle = '#ff8c00';
+        dotCtx.fillRect(x, y, ORB_W, ORB_H);
+      }
+      continue;
+    }
+
+    if (spr){
+      dotCtx.drawImage(spr, 0, 0, ORB_W, ORB_H, x, y, ORB_W, ORB_H);
+    } else {
+      dotCtx.fillStyle = '#ff0';
+      dotCtx.fillRect(x, y, ORB_W, ORB_H);
+    }
+  }
+}
+
+function drawPlayer(){
+    const key = (P.flapLeft > 0) ? SPR_KEYS.ply1 : SPR_KEYS.ply0;
+    const spr = spriteCanvases[key];
+
+    const px = Math.round(P.x);
+    const py = Math.round(P.y);
+
+    if (spr){
+      dotCtx.drawImage(spr, px, py);
+    } else {
+      // Fallback box
+      dotCtx.fillStyle = '#fff';
+      dotCtx.fillRect(px, py, PLAYER_W, PLAYER_H);
+      dotCtx.fillStyle = '#000';
+      dotCtx.fillRect(px+1, py+1, PLAYER_W-2, PLAYER_H-2);
+    }
+  }
+
+  function drawArrows(){
+    const spr = spriteCanvases[SPR_KEYS.arr0];
+    for (const a of arrows){
+      const px = Math.round(a.x);
+      const py = Math.round(a.y);
+      if (spr){
+        dotCtx.drawImage(spr, px, py);
+      } else {
+        dotCtx.fillStyle = '#fff';
+        dotCtx.fillRect(px, py, 2, 2);
+      }
+    }
+  }
+
+
+function drawGreens(){
+  const g0 = spriteCanvases[SPR_KEYS.grn0];
+  const g1 = spriteCanvases[SPR_KEYS.grn1];
+  if (!g0 || !g1) return;
+
+  const W = 16, H = 16;
+  const y = (Y_MIN + FIELD_H) - H;
+
+  const offset = ((-SCROLL.total % W) + W) % W;
+  const shiftTiles = Math.floor(-SCROLL.total / W);
+
+  let tile = -shiftTiles - 1;
+  for (let x = -offset - W; x <= DOT_W; x += W, tile++){
+    const spr = (tile & 1) ? g1 : g0;
+    dotCtx.drawImage(spr, 0, 0, W, H, x, y, W, H);
+  }
+}
+
+  function drawMiss(){
+    if (missFrames <= 0) return;
+
+    if (IMG_GO){
+      dotCtx.drawImage(IMG_GO, 4, 0);
+    }
+
+    const blink = ((Date.now() / 200) | 0) & 1 ? false : true;
+
+    if (missHigh && blink){
+      const msg = 'HIGH SCORE!';
+      const w = FONT8.measure(msg, 1);
+      const x = ((DOT_W - w) / 2) | 0;
+      FONT8.draw(dotCtx, msg, x, 48, '#00ffff', 1);
+    }
+  }
+
+
+  function blitToView(){
+    viewCtx.imageSmoothingEnabled = false;
+    viewCtx.clearRect(0,0,viewCanvas.width,viewCanvas.height);
+    viewCtx.drawImage(dotCanvas, 0, 0, DOT_W, DOT_H, 0, 0, DOT_W*SCALE, DOT_H*SCALE);
+    // dot → view（既存）
+    viewCtx.clearRect(0,0,600,600);
+    viewCtx.imageSmoothingEnabled = false;
+    viewCtx.drawImage(dotCanvas, 0, 0, 600, 600);
+
+    if (CRT.enabled) {
+      drawCrtBlur(viewCtx);
+      drawCrtGrid(viewCtx);
+    }
+  }
+
+  function drawCrtBlur(ctx){
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.35;
+    ctx.filter = `blur(${CRT.blur}px)`;
+    ctx.drawImage(ctx.canvas, 0, 0);
+    ctx.restore();
+  }
+  
+  function drawCrtGrid(ctx){
+    const s = 3; // 1dot = 3px
+    ctx.save();
+    ctx.globalAlpha = CRT.gridAlpha;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+
+    // 縦線
+    for (let x = s; x < 600; x += s){
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, 0);
+      ctx.lineTo(x + 0.5, 600);
+      ctx.stroke();
+    }
+
+    // 横線（走査線っぽく）
+    for (let y = s; y < 600; y += s){
+      ctx.beginPath();
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(600, y + 0.5);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+
+  // ----- Main loop (fixed-ish 60fps step) -----
+  let last = performance.now();
+  let acc = 0;
+
+  function loop(now){
+    const dtMs = now - last;
+    last = now;
+
+    // Overlay中は時間を止める（accに加算しない）
+    // ただし描画（loop）は回り続ける
+    if (overlayState === OVL.NONE) {
+      acc += Math.min(100, dtMs);
+      const frameMs = 1000/60;
+      let steps = 0;
+      while (acc >= frameMs && steps < 6){
+        stepOneFrame();
+        acc -= frameMs;
+        steps++;
+      }
+    } else {
+      // 停止中も入力判定だけは回す（メニュー操作のため）
+      stepOneFrame(); 
+      acc = 0; // 蓄積リセット
+    }
+
+    clearDot();
+
+    // Title screen render
+    if (inTitle){
+      drawTitleScreen();
+      // Titleでもオーバーレイ（HowTo）は出せるようにする
+      if (overlayState === OVL.PAUSE) drawRecordsOverlay(); 
+      blitToView();
+
+      // ★ここを復活・修正（画像がnullならロード開始）
+      if (!IMG_TITLE) loadTitlePng();
+      if (!IMG_GO) loadGoPng();
+
+      requestAnimationFrame(loop);
+      return;
+    }
+
+    // Game Render
+    dotCtx.save();
+    dotCtx.beginPath();
+    dotCtx.rect(X_MIN, Y_MIN, FIELD_W, FIELD_H);
+    dotCtx.clip();
+      // ... (drawBlocks, drawEnemies など既存の描画処理) ...
+      drawBlocks();
+      drawSpikes();
+      drawEnemyBIndicator();
+      drawEnemies();
+      drawDebris();
+      drawOrbs();
+      drawPlayer();
+      drawArrows();
+      drawGreens();
+    dotCtx.restore();
+
+    drawHUD();
+
+    if (!gameStarted && missFrames <= 0 && !inTitle && overlayState === OVL.NONE){
+       // ... (FLAP!点滅) ...
+       const blink = (((Date.now() / 250) | 0) % 2) === 0;
+       if (blink){
+         const l2 = 'FLAP!';
+         const w2 = FONT8.measure(l2, 1);
+         const x2 = ((DOT_W - w2) / 2) | 0;
+         FONT8.draw(dotCtx, l2, x2, 92, '#fff', 1);
+       }
+    }
+
+    drawMiss();
+
+    // Draw Pause (Records) Overlay
+    if (overlayState === OVL.PAUSE) {
+      drawRecordsOverlay();
+    }
+
+    blitToView();
+    requestAnimationFrame(loop);
+  }
+  recordsLoad(); 
+  
+// ============================================================
+  // iOS Audio Fix v2: Delayed Resume & Aggressive Touch
+  // ============================================================
+  document.addEventListener('visibilitychange', () => {
+    if (!BGM.eng || !BGM.eng.ctx) return;
+
+    if (document.hidden) {
+      if (BGM.eng.ctx.state === 'running') {
+        BGM.eng.ctx.suspend().catch(()=>{});
+      }
+    } else {
+      setTimeout(() => {
+        if (overlayState === OVL.NONE && BGM.mode !== 2) { 
+          BGM.eng.ctx.resume().catch(()=>{});
+        }
+      }, 300);
+    }
+  });
+
+  const forceAudioResume = () => {
+    if (BGM.eng && BGM.eng.ctx && BGM.eng.ctx.state !== 'running') {
+      BGM.eng.ctx.resume().catch(()=>{});
+    }
+  };
+
+  window.addEventListener('pointerdown', forceAudioResume, { passive: true });
+  window.addEventListener('touchstart', forceAudioResume, { passive: true });
+  window.addEventListener('keydown', forceAudioResume, { passive: true });
+  
+  requestAnimationFrame(loop);
+})();
+
+</script>
+
+<script type="module">
+  import { spritepackBuildCanvases } from './sprites_pack_btm.js';
+
+  const canvases = spritepackBuildCanvases();
+
+  function cloneCanvas(src){
+    const c = document.createElement('canvas');
+    c.width = src.width; c.height = src.height;
+    c.getContext('2d').drawImage(src, 0, 0);
+    return c;
+  }
+
+  function mountSprites(){
+    document.querySelectorAll('.pad-icon[data-sp]').forEach(host=>{
+      const key = host.getAttribute('data-sp');
+      const src = canvases[key];
+      if (!src) return;
+      host.textContent = '';
+      host.appendChild(cloneCanvas(src));
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountSprites, { once:true });
+  } else {
+    mountSprites();
+  }
+</script>
+
+</body>
+</html>
