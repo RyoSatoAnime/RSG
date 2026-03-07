@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<link rel="icon" href="/RSG/favicon/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" href="/RSG/favicon/favicon.svg" type="image/svg+xml" />
-<link rel="shortcut icon" href="/RSG/favicon/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/RSG/favicon/apple-touch-icon.png" />
-<link rel="manifest" href="/RSG/favicon/site.webmanifest" />
-<meta name="apple-mobile-web-app-title" content="RSG" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>RYO SATO GAMES</title>
@@ -130,6 +124,14 @@
 .play-btn:hover { opacity: .9; transform: translateY(-1px); }
 .play-btn:active { transform: translateY(0); }
 
+.t-red {
+  color: #f10;
+}
+
+.t-ita{
+    font-style: italic
+  }
+
 .t-stroke {
   --sw: 1.2px;
   --stroke: #fff;
@@ -161,10 +163,9 @@
   font-style: normal;
 }
 
-.t-red {
-  color: #f10;
-}
-
+  .MB-ita {
+    font-style: italic
+  }
 </style>
 
 <style>
@@ -243,6 +244,11 @@
   <a class="play-btn" href="./jln/jaloon_lmb.html" role="button">Play</a>
 </div>
     
+<div class="row"
+     style="--btn-bg:#000; --btn-fg:#fff; --btn-border:#fff;">
+  <div class="title"><span class="t-ita">MIDNIGHT</span> <span class="t-stroke MB-ita">BLACKTOP</span></div>
+  <a class="play-btn" href="./mb/midnightblacktop.html" role="button">Play</a>
+</div>
     
   </div>
 </main>
