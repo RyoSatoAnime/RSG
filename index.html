@@ -17,26 +17,52 @@
     font-family: -apple-system, Arial, Arial Black, Helvetica, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* 固定リボン + リスト1段相当。隠れによる「スクロール不能」を防ぐ */
+    padding-bottom: calc(56px + clamp(72px, 10vmin, 120px) + env(safe-area-inset-bottom, 0px));
   }
   a { color: inherit; text-decoration: none; }
 
   /* Header */
   .header { background:#000; position: sticky; top:0; z-index: 10; }
   .brand-row {
-    display:flex; align-items:center; gap:16px;
+    display:flex; align-items:center; justify-content:center; gap:16px;
     padding: 22px 24px 18px;
     border-bottom: 2px solid #fff;
   }
   .brand {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    line-height: 0;
+  }
+  .brand-logo {
+    display: block;
+    height: clamp(30px, 4.6vw, 48px);
+    width: auto;
+    max-width: min(100%, calc(100vw - 48px));
+    object-fit: contain;
+  }
+  /* 文字列は非表示（画像の alt / 文脈用フォールバック。読み上げは alt のみ） */
+  .brand-fallback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
     font-family: -apple-system, Arial Black, Arial, Helvetica, sans-serif;
     font-size: clamp(30px, 4.6vw, 48px);
-     font-weight: 1000;
+    font-weight: 1000;
     letter-spacing: 0.5px;
-    line-height:1;
-    white-space: nowrap;
+    line-height: 1;
   }
-  .brand .r { color:#cc0000; } 
-  .brand .g { color:#006600; } 
+  .brand-fallback .r { color: #cc0000; }
+  .brand-fallback .g { color: #006600; }
 
   /* Main */
   .main {
@@ -79,12 +105,13 @@
     height: 56px;
     background: #cfcfcf;
     display: flex; align-items: center; justify-content: flex-end;
-    padding: 0 14px;
+    /* 46px ボタン + 上下5px = 56px → 上・下・右の余白を 5px で揃える */
+    padding: 5px;
   }
   .yt-link {
   width: 46px;
   height: 46px;
-  border-radius: 50%;
+  border-radius: 10px;
   background: #FF0000;
   display: grid; place-items: center;
   box-shadow: 0 2px 6px rgba(0,0,0,0.35);
@@ -100,12 +127,12 @@
 .yt-link:hover { filter: brightness(1.1); }
 
   .x-link {
-    width: 46px; height: 46px; border-radius: 50%;
+    width: 46px; height: 46px; border-radius: 10px;
     background:#000; display:grid; place-items:center;
     box-shadow: 0 2px 6px rgba(0,0,0,0.35);
     border: 2px solid #000;
   }
-  .x-link svg { width: 28px; height: 28px; stroke:#fff; fill:none; stroke-width:3; }
+  .x-link img { width: 24px; height: 24px; object-fit: contain; display: block; }
   .x-link:hover { filter: brightness(1.1); }
 
   @media (max-width: 680px) {
@@ -204,8 +231,18 @@
 
 <header class="header">
   <div class="brand-row">
-    <div class="brand" aria-label="RYO SATO GAMES">
-      <span class="r">R</span>YO SATO <span class="g">G</span>AMES
+    <div class="brand">
+      <img
+        class="brand-logo"
+        src="./RSGlogo.svg"
+        alt="RYO SATO GAMES"
+        width="964"
+        height="256"
+        decoding="async"
+      />
+      <span class="brand-fallback" aria-hidden="true">
+        <span class="r">R</span>YO SATO <span class="g">G</span>AMES
+      </span>
     </div>
   </div>
 </header>
@@ -268,9 +305,7 @@
 
 
   <a class="x-link" href="https://x.com/RyoSatoAnime" aria-label="X profile">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 4 L20 20 M20 4 L4 20" />
-    </svg>
+    <img src="./X_logo.svg" width="26" height="26" alt="" aria-hidden="true" decoding="async" />
   </a>
 </div>
 
