@@ -20,6 +20,9 @@
     { x: 0, y: 100 }
   ];
   const DESCENT_INTERVAL_MS = 4080;
+  const HARD_DESCENT_INTERVAL_MS = 3245;
+  const WAVE_1_BGM_BPM = 100;
+  const WAVE_2_BGM_BPM = 110;
   const RESPAWN_DELAY_MS = 1200;
   const RESPAWN_MOVE_MS = 800;
   const WAVE_START_MOVE_MS = 800;
@@ -41,6 +44,7 @@
   ];
   const POWER_PUSH_DURATION_MS = 8000;
   const POWER_PUSH_BONUS_ROWS = 1;
+  const HARD_MODE_PUSH_BONUS_ROWS = 1;
   const BONUS_RADIUS = 20;
   const BONUS_COLOR = "#b12";
   const BONUS_START_Y = BASE_Y;
@@ -80,19 +84,26 @@
     pushback: 16,
     bonus: 32,
     enm2: 48,
-    enm3: 64
+    enm3: 64,
+    enemy1: 80,
+    enemy2: 96,
+    enemy3: 112
   };
   const RAIDER_LANE_SPRITES = ["enm3", "enm2", "enm1", "enm2", "enm3"];
+  const HARD_RAIDER_LANE_SPRITES = ["enemy3", "enemy2", "enemy1", "enemy2", "enemy3"];
   const COMBINATION_WINDOW_MS = 700;
   const COMBINATION_HITS_REQUIRED = 3;
   const COMBINATION_BONUS_SCORE = 100;
-  const WAVE_COUNT = 3;
+  const WAVE_COUNT = 2;
   const WAVE_DURATION_MS = 90000;
+  const WAVE_1_DISPLAY_DURATION_SECONDS = 90;
+  const WAVE_2_DISPLAY_DURATION_SECONDS = 80;
   const WAVE_END_MOVE_MS = 700;
   const WAVE_END_TOTAL_MS = 2200;
   const WAVE_LABEL_X = 210;
   const TIME_LABEL_X = 410;
   const WAVE_TIMER_Y = 775;
+  const WAVE_MESSAGE_Y = 660;
   const DANGER_MAX = 3;
 
   function createRuntime(api) {
@@ -138,12 +149,33 @@
     let powerPushTimerMs = 0;
     let combinationHitCount = 0;
     let combinationTimerMs = 0;
+
+    function getWaveBgmPlaybackRate() {
+      return currentWave >= 2
+        ? WAVE_2_BGM_BPM / WAVE_1_BGM_BPM
+        : 1;
+    }
+
     function getWaveDurationMs() {
       const duration = api.getBgmDurationMs?.();
-      return Number.isFinite(duration) && duration > 0 ? duration : WAVE_DURATION_MS;
+      const baseDurationMs = Number.isFinite(duration) && duration > 0
+        ? duration
+        : WAVE_DURATION_MS;
+      return baseDurationMs / getWaveBgmPlaybackRate();
     }
 
     let currentWave = 1;
+
+    function getDescentIntervalMs() {
+      return currentWave >= 2
+        ? HARD_DESCENT_INTERVAL_MS
+        : DESCENT_INTERVAL_MS;
+    }
+
+    function getHardModePushBonusRows() {
+      return currentWave >= 2 ? HARD_MODE_PUSH_BONUS_ROWS : 0;
+    }
+
     let waveTimerMs = getWaveDurationMs();
     let waveEndActive = false;
     let waveEndElapsedMs = 0;
@@ -271,7 +303,7 @@
 
     function resetFormation() {
       for (const raider of raiders) resetRaider(raider);
-      descentTimerMs = DESCENT_INTERVAL_MS;
+      descentTimerMs = getDescentIntervalMs();
     }
 
     function prepareWaveLaunchFormation() {
@@ -326,8 +358,11 @@
         raider.visualY = ROW_Y[START_ROW];
         raider.state = "normal";
       }
-      descentTimerMs = DESCENT_INTERVAL_MS;
-      api.launchBall();
+      descentTimerMs = getDescentIntervalMs();
+      api.launchBall({
+        bgmPlaybackRate: getWaveBgmPlaybackRate(),
+        bgmLayers: currentWave >= 2 ? ["wave2"] : []
+      });
     }
 
     function reset() {
@@ -656,7 +691,7 @@
 
       descentTimerMs -= dtMs;
       while (descentTimerMs <= 0) {
-        descentTimerMs += DESCENT_INTERVAL_MS;
+        descentTimerMs += getDescentIntervalMs();
         stepRaidersDown();
         if (waveEndActive || api.getGameStatus() !== "playing") return;
       }
@@ -694,12 +729,13 @@
       if (impactSpeed < PUSH_SPEED_MIN) return;
 
       const basePushRows = impactSpeed >= STRONG_PUSH_SPEED_MIN ? 2 : 1;
-      const pushRows = basePushRows + (
-        powerPushTimerMs > 0 ? POWER_PUSH_BONUS_ROWS : 0
-      );
+      const pushRows = basePushRows
+        + getHardModePushBonusRows()
+        + (powerPushTimerMs > 0 ? POWER_PUSH_BONUS_ROWS : 0);
       if (startRaiderPush(raider, pushRows, "ball")) {
-        const pushSoundId = pushRows >= 3
-          ? "push3"
+        const pushSoundId = pushRows >= 4
+          ? "push4"
+          : pushRows === 3 ? "push3"
           : pushRows === 2 ? "push2" : "push1";
         api.playSfx?.(pushSoundId);
         registerCombinationHit();
@@ -823,11 +859,12 @@
 
     function getDangerShakeX(raider) {
       if (raider.state !== "normal" || raider.rowIndex !== ROW_Y.length - 1) return 0;
+      const descentIntervalMs = getDescentIntervalMs();
       const progress = Math.max(0, Math.min(1,
-        1 - descentTimerMs / DESCENT_INTERVAL_MS));
+        1 - descentTimerMs / descentIntervalMs));
       if (progress <= 0.5) return 0;
       const ramp = (progress - 0.5) * 2;
-      const seconds = ramp * DESCENT_INTERVAL_MS / 2000;
+      const seconds = ramp * descentIntervalMs / 2000;
       // Integrate a rising frequency for a smooth 4-to-16 Hz warning.
       const phase = 2 * Math.PI * seconds * (4 + 6 * ramp);
       return Math.sin(phase) * 3 * ramp;
@@ -841,9 +878,12 @@
         const x = raider.x + getDangerShakeX(raider);
         if (y == null) continue;
 
+        const laneSprites = currentWave >= 2
+          ? HARD_RAIDER_LANE_SPRITES
+          : RAIDER_LANE_SPRITES;
         const frameName = raider.state === "push"
           ? "pushback"
-          : RAIDER_LANE_SPRITES[raider.laneIndex];
+          : laneSprites[raider.laneIndex];
         if (drawRaiderSprite(drawCtx, frameName, x, y)) continue;
 
         drawCtx.beginPath();
@@ -942,9 +982,12 @@
       drawNormalIndicators(drawCtx);
       drawBlastIndicators(drawCtx);
 
-      // Display 90 game seconds across the full BGM duration.
+      // Keep the simplified game clock while making Wave 2's acceleration visible.
       const remainingRatio = Math.max(0, Math.min(1, waveTimerMs / getWaveDurationMs()));
-      const remainingSeconds = Math.ceil(remainingRatio * 90);
+      const displayDurationSeconds = currentWave >= 2
+        ? WAVE_2_DISPLAY_DURATION_SECONDS
+        : WAVE_1_DISPLAY_DURATION_SECONDS;
+      const remainingSeconds = Math.ceil(remainingRatio * displayDurationSeconds);
       const minutes = Math.floor(remainingSeconds / 60);
       const seconds = String(remainingSeconds % 60).padStart(2, "0");
 
@@ -963,6 +1006,32 @@
         TIME_LABEL_X,
         WAVE_TIMER_Y
       );
+
+      if (
+        api.getGameStatus() === "ready" &&
+        !waveStartActive &&
+        !waveEndActive
+      ) {
+        const waveMessage = currentWave >= 2
+          ? "RAIDERS RUSH IN · PUSHBACK BOOSTED"
+          : "RAIDERS ADVANCE · PUSH 'EM BACK";
+        drawCtx.textAlign = "center";
+        drawCtx.font = "700 24px system-ui, sans-serif";
+        drawCtx.fillStyle = "#fff";
+        drawCtx.lineWidth = 7;
+        drawCtx.lineJoin = "round";
+        drawCtx.strokeStyle = "#171717";
+        drawCtx.strokeText(
+          waveMessage,
+          370,
+          WAVE_MESSAGE_Y
+        );
+        drawCtx.fillText(
+          waveMessage,
+          370,
+          WAVE_MESSAGE_Y
+        );
+      }
       drawCtx.restore();
     }
 
@@ -1304,10 +1373,10 @@
     spawn: {
       x: 370,
       y: 1065,
-      launchPowerMin: 16,
-      launchPowerMax: 19,
-      launchVxMin: 3,
-      launchVxMax: 6,
+      launchPowerMin: 13,
+      launchPowerMax: 16,
+      launchVxMin: 2,
+      launchVxMax: 5,
       launchRandomDirection: true
     },
 

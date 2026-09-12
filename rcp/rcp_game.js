@@ -1642,7 +1642,7 @@
       getBgmDurationMs: () => window.RCP_BGM_DEFS?.cosmoRaiders?.duration * 1000,
       stopBgm: () => window.RCPAudio?.stopBgm?.(),
       resetWavePlayfield: resetBallScopedRules,
-      launchBall,
+      launchBall: options => launchBall(options),
       prepareBallLaunch() {
         ballInPlay = false;
         waitingForLaunch = true;
@@ -2571,7 +2571,7 @@
     ball.vy = -power;
   }
 
-  function launchBall() {
+  function launchBall(options = {}) {
     const isNewBallLaunch = waitingForLaunch;
     placeBallAtSpawn();
 
@@ -2610,7 +2610,11 @@
     if (isNewBallLaunch) {
       const melodyId = getBallLaunchMelodyId(gameState.currentBall);
       if (melodyId === "start" && TABLE?.id === "cosmo_raiders") {
-        window.RCPAudio?.playBgm?.("cosmoRaiders", { muted: SFXmute });
+        window.RCPAudio?.playBgm?.("cosmoRaiders", {
+          muted: SFXmute,
+          playbackRate: options.bgmPlaybackRate,
+          layers: options.bgmLayers
+        });
       } else if (melodyId) {
         window.RCPAudio?.playMelody?.(melodyId, {
           muted: SFXmute
