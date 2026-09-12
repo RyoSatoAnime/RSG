@@ -74,8 +74,6 @@
   <polygon id="wall_x5F_deflector_x5F_right2" class="st5" points="308.6 117.2 128 3 2 109 78 295 308.6 117.2"/>
   <polygon id="wall_x5F_deflector_x5F_right" class="st5" points="431.4 117.2 612 3 738 109 662 295 431.4 117.2"/>
   <path id="wall_x5F_deflector_x5F_right1" d="M0,775l54.2-199.7c-35.2-92.3-42.2-198.3,23.8-280.3L2,109,128,3l180.6,114.2,61.4-47.2,61.4,47.2L612,3l126,106-76,186c66,82,59,188,23.8,280.3l54.2,199.7V0H0v775Z"/>
-  <polygon id="wall_x5F_bottom_x5F_left" points="0 1155 216.2 1280 0 1280 0 1155"/>
-  <polygon id="wall_x5F_bottom_x5F_right" points="523.9 1280 740 1155 740 1280 523.9 1280"/>
   <path class="st9" d="M369.8,193c-11.7,0-22.4-4.9-30-12.6v3.6c0,16.6,13.4,30,30,30s30-13.4,30-30v-3.6c-7.6,7.8-18.3,12.6-30,12.6Z"/>
   <path class="st9" d="M369.8,582c-11.7,0-22.4-4.9-30-12.6v3.6c0,16.6,13.4,30,30,30s30-13.4,30-30v-3.6c-7.6,7.8-18.3,12.6-30,12.6Z"/>
   <path class="st9" d="M369.8,163c-11.7,0-22.4-4.9-30-12.6v3.6c0,16.6,13.4,30,30,30s30-13.4,30-30v-3.6c-7.6,7.8-18.3,12.6-30,12.6Z"/>
@@ -133,5 +131,7 @@
     <rect class="st7" y="1178" width="740" height="5"/>
     <rect class="st7" y="1152" width="740" height="3"/>
   </g>
+  <polygon id="wall_x5F_bottom_x5F_left" points="0 1155 216.2 1280 0 1280 0 1155"/>
+  <polygon id="wall_x5F_bottom_x5F_right" points="523.9 1280 740 1155 740 1280 523.9 1280"/>
   <rect class="st1" width="740" height="1280"/>
 </svg>

@@ -8,6 +8,7 @@
   const BALL_ROLL_AUDIO_DEBUG = false;
   const BALL_RADIUS = 22;
 
+  // RCP2 backport experiment: let continuous flipper contact determine the shot.
   const SHOTMAP_ENABLED = true;
   const SHOTMAP_FIRE_DEBUG = false;
   const SHOTMAP_FIRE_MARGIN = 2;
@@ -16,6 +17,11 @@
   const SHOTMAP_RATIO_TOLERANCE = 0.04;
   const SHOTMAP_PUSH_OUT = 3;
   const SHOTMAP_POSITION_COUNT = 8;
+  const FLIPPER_SURFACE_TRANSFER = 0.82;
+  const FLIPPER_RESTITUTION = 0.44;
+  const FLIPPER_MOVING_BOUNCE_BONUS = 0;
+  const FLIPPER_ROOT_RADIUS = 19;
+  const FLIPPER_TIP_RADIUS = 10;
   const SHOT_POWER_BY_POSITION = [
     20, 38, 40, 42, 42, 45, 48, 55
   ];
@@ -1642,7 +1648,7 @@
       getBgmDurationMs: () => window.RCP_BGM_DEFS?.cosmoRaiders?.duration * 1000,
       stopBgm: () => window.RCPAudio?.stopBgm?.(),
       resetWavePlayfield: resetBallScopedRules,
-      launchBall: options => launchBall(options),
+      launchBall,
       prepareBallLaunch() {
         ballInPlay = false;
         waitingForLaunch = true;
@@ -1734,6 +1740,8 @@
       this.angle = minAngle;
       this.isUp = false;
       this.thickness = 16;
+      this.rootRadius = FLIPPER_ROOT_RADIUS;
+      this.tipRadius = FLIPPER_TIP_RADIUS;
       this.upSpeed = isLeft ? -0.52 : 0.52;
       this.downSpeed = isLeft ? 0.2 : -0.2;
       this.currentOmega = 0;
@@ -2571,7 +2579,7 @@
     ball.vy = -power;
   }
 
-  function launchBall(options = {}) {
+  function launchBall() {
     const isNewBallLaunch = waitingForLaunch;
     placeBallAtSpawn();
 
@@ -2610,11 +2618,7 @@
     if (isNewBallLaunch) {
       const melodyId = getBallLaunchMelodyId(gameState.currentBall);
       if (melodyId === "start" && TABLE?.id === "cosmo_raiders") {
-        window.RCPAudio?.playBgm?.("cosmoRaiders", {
-          muted: SFXmute,
-          playbackRate: options.bgmPlaybackRate,
-          layers: options.bgmLayers
-        });
+        window.RCPAudio?.playBgm?.("cosmoRaiders", { muted: SFXmute });
       } else if (melodyId) {
         window.RCPAudio?.playMelody?.(melodyId, {
           muted: SFXmute
@@ -3425,7 +3429,18 @@
     tableModeRuntime?.onNonEnemyCollision?.();
   }
 
-  function collideSegment(b, x1, y1, x2, y2, r, isFlipper, flipperOmega, pivotX, pivotY) {
+  function collideSegment(
+    b,
+    x1,
+    y1,
+    x2,
+    y2,
+    r,
+    isFlipper,
+    flipperOmega,
+    pivotX,
+    pivotY
+  ) {
     const dx = x2 - x1;
     const dy = y2 - y1;
     const len2 = dx * dx + dy * dy;
@@ -3437,7 +3452,10 @@
     const px = x1 + t * dx;
     const py = y1 + t * dy;
     const dist2 = (b.x - px) * (b.x - px) + (b.y - py) * (b.y - py);
-    const totalR = BALL_RADIUS + r;
+    const collisionR = typeof r === "number"
+      ? r
+      : r.root + (r.tip - r.root) * t;
+    const totalR = BALL_RADIUS + collisionR;
     if (dist2 >= totalR * totalR) return false;
     const dist = Math.sqrt(dist2);
     if (dist === 0) return false;
@@ -3450,18 +3468,24 @@
     let svx = 0;
     let svy = 0;
     if (isFlipper) {
-      const rx = px - pivotX;
-      const ry = py - pivotY;
-      svx = -flipperOmega * ry;
-      svy = flipperOmega * rx;
+      // Use the real contact surface rather than the centerline. This keeps
+      // useful angular velocity at the thick root of the flipper.
+      const surfaceX = px + nx * collisionR;
+      const surfaceY = py + ny * collisionR;
+      const rx = surfaceX - pivotX;
+      const ry = surfaceY - pivotY;
+      svx = -flipperOmega * ry * FLIPPER_SURFACE_TRANSFER;
+      svy = flipperOmega * rx * FLIPPER_SURFACE_TRANSFER;
     }
     let rvx = b.vx - svx;
     let rvy = b.vy - svy;
     const dot = rvx * nx + rvy * ny;
     if (dot < 0) {
-      const restitution = 0.6;
+      const restitution = isFlipper ? FLIPPER_RESTITUTION : 0.6;
       let bump = 1 + restitution;
-      if (isFlipper && Math.abs(flipperOmega) > 0.1) bump += 0.8;
+      if (isFlipper && Math.abs(flipperOmega) > 0.1) {
+        bump += FLIPPER_MOVING_BOUNCE_BONUS;
+      }
       rvx -= bump * dot * nx;
       rvy -= bump * dot * ny;
       b.vx = rvx + svx;
@@ -5448,7 +5472,7 @@
             flipper.y,
             p2.x,
             p2.y,
-            flipper.thickness,
+            { root: flipper.rootRadius, tip: flipper.tipRadius },
             true,
             flipper.currentOmega,
             flipper.x,
@@ -6631,7 +6655,7 @@
     drawCtx.fillText("2026", 58, 949);
 
     drawCtx.textAlign = "right";
-    drawCtx.fillText("version 1.1.0", 680, 949);
+    drawCtx.fillText("version 1.2", 680, 949);
 
     const selectedItem = TABLE_SELECT_ITEMS[titleState.selectedTableIndex] ?? TABLE_SELECT_ITEMS[0];
     drawCtx.textAlign = "center";
@@ -7169,12 +7193,23 @@
   function drawDynamicFlippersBallSavesLayer(drawCtx) {
     function strokeFlipper(f) {
       const p2 = f.getP2();
+      const dx = p2.x - f.x;
+      const dy = p2.y - f.y;
+      const length = Math.hypot(dx, dy) || 1;
+      const nx = -dy / length;
+      const ny = dx / length;
       drawCtx.beginPath();
-      drawCtx.moveTo(f.x, f.y);
-      drawCtx.lineTo(p2.x, p2.y);
-      drawCtx.lineWidth = f.thickness * 2;
-      drawCtx.strokeStyle = getTableColor("flipper", "rcpRed");
-      drawCtx.stroke();
+      drawCtx.moveTo(f.x + nx * f.rootRadius, f.y + ny * f.rootRadius);
+      drawCtx.lineTo(p2.x + nx * f.tipRadius, p2.y + ny * f.tipRadius);
+      drawCtx.lineTo(p2.x - nx * f.tipRadius, p2.y - ny * f.tipRadius);
+      drawCtx.lineTo(f.x - nx * f.rootRadius, f.y - ny * f.rootRadius);
+      drawCtx.closePath();
+      drawCtx.fillStyle = getTableColor("flipper", "rcpRed");
+      drawCtx.fill();
+      drawCtx.beginPath();
+      drawCtx.arc(f.x, f.y, f.rootRadius, 0, Math.PI * 2);
+      drawCtx.arc(p2.x, p2.y, f.tipRadius, 0, Math.PI * 2);
+      drawCtx.fill();
       drawCtx.beginPath();
       drawCtx.arc(f.x, f.y, f.thickness * 0.6, 0, Math.PI * 2);
       drawCtx.fillStyle = COLORS.white;
