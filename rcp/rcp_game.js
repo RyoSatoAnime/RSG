@@ -2579,7 +2579,7 @@
     ball.vy = -power;
   }
 
-  function launchBall() {
+  function launchBall(options = {}) {
     const isNewBallLaunch = waitingForLaunch;
     placeBallAtSpawn();
 
@@ -2618,7 +2618,11 @@
     if (isNewBallLaunch) {
       const melodyId = getBallLaunchMelodyId(gameState.currentBall);
       if (melodyId === "start" && TABLE?.id === "cosmo_raiders") {
-        window.RCPAudio?.playBgm?.("cosmoRaiders", { muted: SFXmute });
+        window.RCPAudio?.playBgm?.("cosmoRaiders", {
+          muted: SFXmute,
+          playbackRate: options.bgmPlaybackRate,
+          layers: options.bgmLayers
+        });
       } else if (melodyId) {
         window.RCPAudio?.playMelody?.(melodyId, {
           muted: SFXmute
@@ -6655,7 +6659,7 @@
     drawCtx.fillText("2026", 58, 949);
 
     drawCtx.textAlign = "right";
-    drawCtx.fillText("version 1.2", 680, 949);
+    drawCtx.fillText("version 1.2.1", 680, 949);
 
     const selectedItem = TABLE_SELECT_ITEMS[titleState.selectedTableIndex] ?? TABLE_SELECT_ITEMS[0];
     drawCtx.textAlign = "center";

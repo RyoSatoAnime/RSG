@@ -5,7 +5,7 @@
   // Shared audio context / master
   // ============================================================================
 
-  const DEFAULT_MASTER_VOLUME = 1.0;
+  const DEFAULT_MASTER_VOLUME = 0.9;
 
   let audioCtx = null;
   let ballRollGain = null;
@@ -291,6 +291,7 @@
     push2: "replace",
     push1: "replace",
     push3: "replace",
+    push4: "replace",
     turnBack: "replace",
     waveBlast: "replace",
     miniBlast: "replace",
@@ -302,7 +303,8 @@
   const ONE_SHOT_MONO_GROUP = {
     push1: "push",
     push2: "push",
-    push3: "push"
+    push3: "push",
+    push4: "push"
   };
 
   const lastPlayedAtById = Object.create(null);
@@ -1651,17 +1653,43 @@ Object.assign(window.RCP_AUDIO_SFX_DEFS, {
 
   function playBgm(id, options = {}) {
     stopBgm();
-    const def = window.RCP_BGM_DEFS?.[id];
-    if (!def || !ensure()) return;
+    const sourceDef = window.RCP_BGM_DEFS?.[id];
+    if (!sourceDef || !ensure()) return;
+    const requestedPlaybackRate = Number(options.playbackRate);
+    const playbackRate = Number.isFinite(requestedPlaybackRate) && requestedPlaybackRate > 0
+      ? requestedPlaybackRate
+      : 1;
+    const def = {
+      ...sourceDef,
+      bpm: Number(sourceDef.bpm) * playbackRate,
+      duration: Number(sourceDef.duration) / playbackRate
+    };
     unlock();
     const gain = audioCtx.createGain();
     gain.gain.value = options.muted ? 0 : masterVolume * def.volume;
     gain.connect(audioCtx.destination);
     const events = [];
-    for (const track of def.tracks) {
+    const enabledLayers = new Set(
+      Array.isArray(options.layers) ? options.layers : []
+    );
+    for (const track of sourceDef.tracks) {
+      if (typeof track.layer === "string" && !enabledLayers.has(track.layer)) {
+        continue;
+      }
       for (const note of track.notes) {
         const tone = track.drums ? track.drums[note[2]] : track.instrument;
-        if (tone) events.push({ tone, note, index: events.length });
+        if (tone) {
+          events.push({
+            tone,
+            note: [
+              note[0] / playbackRate,
+              note[1] / playbackRate,
+              note[2],
+              note[3]
+            ],
+            index: events.length
+          });
+        }
       }
     }
     events.sort((a, b) => a.note[0] - b.note[0]);
