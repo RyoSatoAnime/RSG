@@ -744,7 +744,7 @@
     signatureColor: "#ffffff",
     glowColor: "#ff4fd8",
     glowBlur: 5,
-    lineWidth: 1
+    lineWidth: 1.5
   });
 
   const TITLE_LAYOUT = Object.freeze({
@@ -3288,12 +3288,12 @@
       ctx.save();
       ctx.fillStyle = TITLE_STYLE.signatureColor;
       ctx.shadowBlur = 0;
-      ctx.font = "300 16px system-ui, sans-serif";
+      ctx.font = "300 20px system-ui, sans-serif";
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
-      ctx.fillText("A Ryo Sato Game", 38, 36);
+      ctx.fillText("A Ryo Sato Game", 28, 28);
       ctx.textAlign = "right";
-      ctx.fillText("Made with ChatGPT", WIDTH - 38, 36);
+      ctx.fillText("Made with ChatGPT", WIDTH - 28, 28);
       ctx.restore();
       ctx.lineWidth = TITLE_STYLE.lineWidth;
       ctx.lineJoin = "miter";
