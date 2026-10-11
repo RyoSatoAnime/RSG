@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Fireworks Pinball</title>
+<style>
+  
+  /* ===== Mobile zoom/scroll lock (prevents accidental pinch/double-tap zoom while using on-screen controls) ===== */
+  html, body{
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+  canvas{
+    touch-action: none;            /* allow our own pointer/touch handling without browser gestures */
+  }
+  button, .btn, .mobileBtn, .ui-btn{
+    touch-action: manipulation;    /* prevent double-tap zoom on buttons */
+  }
+:root{ color-scheme: dark; --shell-version: "v0.2"; }
+  html,body{ margin:0; background:#000; color:#fff; font-family:system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial, sans-serif; }
+  .page{ display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:12px 0 0 ;}
+  html.is-mobile-platform .page{ padding-top:4px; }
+
+  /* ===== Link bar (desktop) ===== */
+  .linkBar{
+    width:min(800px, calc(100vw - 2px), calc(100vh - 104px)); max-width:100%;
+    margin:6px auto 4px !important;
+    text-align:center; color:#fff;
+  }
+  .linkBar .label{
+    font-family:"Arial Black", Arial, Helvetica, sans-serif;
+    font-weight:900;
+    font-size:16px;
+    line-height:1.1;
+    text-decoration:none;
+    color:#fff;
+    display:inline-block;
+    padding-bottom:9px;
+  }
+  html.is-mobile-platform .linkBar{ display:none; }
+
+  /* ===== Canvas wrap ===== */
+  .mobileScaleRoot{ width:min(800px, calc(100vw - 2px), calc(100vh - 104px)); max-width:100%; margin:0 auto; }
+  html.is-mobile-platform .mobileScaleRoot{ width: min(96vmin, 100%, 800px); }
+
+  .stageWrap{
+    width:800px; max-width:100%;
+    margin:6px auto 0;
+    display:flex; justify-content:center;
+  }
+  html.is-mobile-platform .topbar,
+  html.is-mobile-platform .stageWrap,
+  html.is-mobile-platform .pad{ width:100%; }
+
+  canvas#game{
+    width:800px; max-width:100%; height:auto;
+    image-rendering: pixelated;
+    background:#000; border:1px solid #fff;
+    display:block; touch-action:none; outline:none;
+  }
+  /* Smooth desktop compositing at fractional display scales (OS DPI / window fit). */
+  html:not(.is-mobile-platform) canvas#game{ image-rendering:auto; }
+  html.is-mobile-platform canvas#game{ width:100%; height:auto; }
+
+  /* ===== Topbar (mobile) ===== */
+  .topbar{
+    width:800px; max-width:100%;
+    margin:6px auto 8px;
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .square-btn{
+    min-width:64px;
+    padding:10px 16px;
+    background:transparent;
+    border:2px solid #fff;
+    border-radius:10px;
+    color:#fff;
+    font-family:system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    font-weight:800;
+    font-size:16px;
+    letter-spacing:0.03em;
+    cursor:pointer;
+  }
+  html.is-mobile-platform .topbar{ display:flex; gap:8px; }
+  html.is-mobile-platform .topbar button{ flex:0 1 auto; }
+  html.is-mobile-platform .topbar .square-btn{ height:60px; display:flex; align-items:center; justify-content:center; padding:0 14px; }
+  html.is-mobile-platform #btnTitle, html.is-mobile-platform #btnMute{ flex:0 0 56px; aspect-ratio:1/1; }
+  html.is-mobile-platform #btnHowto{ flex:1 1 auto; white-space:nowrap; text-align:center; font-size:16px; }
+
+  /* ===== Desktop controls hint line ===== */
+  #controls{
+    width:800px; max-width:100%;
+    margin:16px auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    white-space:nowrap;
+    font:14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    user-select:none;
+  }
+  html.is-mobile-platform #controls{ display:none; }
+
+  /* ===== Mobile pad ===== */
+  .pad{
+    width:800px; max-width:100%;
+    margin:10px auto 0;
+    display:none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 80px;
+    column-gap:10px;
+    row-gap:0;
+  }
+  html.is-mobile-platform .pad{ display:grid; }
+
+  .pad .half{
+    height:80px;
+    border:2px solid #fff;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    background:transparent;
+    touch-action:manipulation;
+    user-select:none;
+  }
+  .pad .half:active{ transform:translateY(1px); }
+
+  #btnPadMoveL { grid-column:1; grid-row:1; }
+  #btnPadMoveR { grid-column:2; grid-row:1; }
+
+  .pad-label{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:100%;
+    color:#fff;
+    font-family:system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    font-weight:900;
+    font-size:40px;
+    line-height:1;
+    user-select:none;
+  }
+
+  /* ===== Audio icon system (same class approach) ===== */
+  #btnMute .iconMobileSpeaker .slash{ display:none; }
+  #btnMute.muted .iconMobileSpeaker .slash{ display:block; }
+
+  #audioIconSlot{
+    display:inline-block;
+    position:relative;
+    width:1.4em;
+    height:1.3em;
+    vertical-align:middle;
+  }
+  #audioIconSlot svg{ position:absolute; inset:0; width:100%; height:100%; }
+  #ctrlSlash{ display:none; }
+  #ctrlNote{ transform: translateY(-2px); }
+
+  .audio-icon-svg .icon-speaker,
+  .audio-icon-svg .speaker-wave,
+  .audio-icon-svg .icon-note,
+  .audio-icon-svg .icon-slash{ display:none; }
+
+  html.audio-all .audio-icon-svg .icon-speaker{ display:inline; }
+  html.audio-all .audio-icon-svg .speaker-wave{ display:inline; }
+
+  html.audio-bgmoff .audio-icon-svg .icon-note{ display:inline; }
+  html.audio-bgmoff .audio-icon-svg .icon-slash{ display:inline; }
+
+  html.audio-mute .audio-icon-svg .icon-speaker{ display:inline; }
+  html.audio-mute .audio-icon-svg .speaker-wave{ display:inline; }
+  html.audio-mute .audio-icon-svg .icon-slash{ display:inline; }
+
+  .audio-icon-svg .icon-speaker{ transform: translateX(1px); }
+  .audio-icon-svg .icon-note-wrap{ transform: translateX(0px) scaleX(1.25); transform-origin:50% 50%; }
+
+  canvas#game, .square-btn, .pad .half{
+    touch-action:none;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* ===== HowTo overlay ===== */
+  #howtoOverlay{
+    display:none; position:fixed; inset:0; z-index:9999;
+    background: rgba(0,0,0,0.65);
+  }
+  #howtoOverlay .howto-panel{
+    position: fixed;
+    left: 50vw; top: 50vh;
+    transform: translate(-50%,-50%);
+  }
+  .howto-panel{
+    box-sizing:border-box;
+    width:auto;
+    margin:0 auto;
+    background:rgba(0,0,0,0.55);
+    border:2px solid #fff; border-radius:12px;
+    padding:28px 22px 24px;
+    transform:none;
+  }
+  .howto-title{
+    margin:0 0 10px;
+    font-family:"Arial Black", Impact, system-ui, sans-serif;
+    text-align:center;
+    line-height:1.05;
+    font-weight:900;
+    overflow-wrap:anywhere;
+  }
+  .howto-title.en{ font-size:28px; }
+  .howto-title.ja{ font-size:26px; }
+
+  .howto-pre{
+    margin:16px auto 0;
+    white-space:pre-wrap;
+    line-height:1.45;
+    font-family:system-ui, "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial, sans-serif;
+  }
+  .howto-footer{
+    text-align:center;
+    margin-top:1.1em;
+    font-size:14px;
+    opacity:0.7;
+  }
+
+  #howtoOverlay .howto-panel{ position: relative; overflow: visible; }
+  #howtoOverlay .howto-panel::after{
+    content: var(--shell-version);
+    position: absolute;
+    right: 8px;
+    bottom: -18px;
+    display: block;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1;
+    opacity: .6;
+    pointer-events: none;
+  }
+
+  /* PC */
+  @media (pointer: fine) and (min-width:821px){
+    #howtoOverlay{ padding-top:55px; }
+    .howto-panel{ margin:0 auto; width:fit-content; max-width:86vw; }
+    .howto-pre.en, .howto-pre.ja{ font-size:18px; }
+  }
+  /* Mobile */
+  @media (pointer: coarse), (max-width: 820px){
+    .howto-panel{ width:min(89vw, 680px); padding:24px 18px 20px; }
+    .howto-pre.en, .howto-pre.ja{ font-size:17px; }
+  }
+</style>
+</head>
+<body>
+  
+  <!-- Hidden outbound link for mobile-safe target=_blank navigation -->
+  <a id="rsgOutboundLink" href="https://ryosatoanime.github.io/RSG/index.html" target="_blank" rel="noopener noreferrer" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;">RSG</a>
+<div class="page">
+    <div class="linkBar">
+      <a class="label" href="https://ryosatoanime.github.io/RSG/index.html" target="_blank" rel="noopener noreferrer">Ryo Sato Games</a>
+    </div>
+
+    <div class="mobileScaleRoot">
+      <div class="topbar">
+        <button id="btnTitle" class="square-btn">Title</button>
+        <button id="btnHowto" class="square-btn">How To Play</button>
+        <button id="btnMute" class="square-btn" aria-label="Mute / Audio">
+          <span class="iconMobileSpeaker" aria-hidden="true">
+            <svg class="audio-icon-svg" viewBox="0 0 24 24" aria-hidden="true" style="width:2.1em; height:2.1em; display:block;">
+              <g class="icon-speaker">
+                <polygon points="4,9 8,9 12,6 12,18 8,15 4,15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M14 9 Q17 12 14 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                <path d="M16 7 Q21 12 16 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </g>
+              <g class="icon-note-wrap">
+              <g class="icon-note" transform="translate(1 2) scale(0.08)" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="22">
+                <circle cx="180" cy="172" r="28"></circle>
+                <circle cx="74" cy="204" r="28"></circle>
+                <polyline points="104 204 104 64 208 32 208 172"></polyline>
+                <polyline points="104 104 208 72"></polyline>
+              </g>
+              </g>
+              <line class="icon-slash" x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <div class="stageWrap">
+        <canvas id="game" width="800" height="800" aria-label="Fireworks Pinball game surface"></canvas>
+      </div>
+
+      <div id="controls">
+        <span>
+          ← / → : Flipper | Space : Pause | H : HowTo | M :
+          <span id="audioIconSlot">
+            <svg id="ctrlNote" viewBox="0 0 256 256" aria-hidden="true">
+              <circle cx="180" cy="192" r="28" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></circle>
+              <circle cx="68"  cy="224" r="28" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24"></circle>
+
+              <polyline fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24" points="96 224 96 84 208 52 208 192"></polyline>
+
+              <polyline fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="24" points="96 124 208 92"></polyline>
+            </svg>
+            <svg id="ctrlSpeaker" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="4,9 8,9 12,6 12,18 8,15 4,15"
+                       fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></polygon>
+              <path d="M14 9 Q17 12 14 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+              <path d="M16 7 Q21 12 16 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+            <svg id="ctrlSlash" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+            </svg>
+          </span>
+        </span>
+      </div>
+
+      <div class="pad" aria-label="Flipper controls">
+        <button id="btnPadMoveL" class="half" aria-label="Left Flipper">
+          <span class="pad-label" aria-hidden="true">◀</span>
+        </button>
+        <button id="btnPadMoveR" class="half" aria-label="Right Flipper">
+          <span class="pad-label" aria-hidden="true">▶</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HowTo Overlay -->
+  <div id="howtoOverlay" aria-hidden="true">
+    <section class="howto-panel" role="dialog" aria-modal="true" aria-labelledby="howtoTitleEN">
+      <h2 class="howto-title en" id="howtoTitleEN">LIGHT UP THE NIGHT</h2>
+      <pre class="howto-pre en">Hit the ball to leave a trail.
+Burst Star Fragments with the ball or its trail.
+
+Large Fragments can only be burst by a direct hit.
+
+Trail builds COMBO.
+Every 10 COMBO earns a bonus
+and increases your score multiplier.
+
+</pre>
+
+      <h2 class="howto-title ja">星を弾いて、夜空に花を</h2>
+      <pre class="howto-pre ja">ボールを打つと、軌跡が残る。
+ボールと軌跡で、星の欠片を弾けさせよう。
+
+ただし、大きな欠片はボールを直接当てないと弾けない。
+
+軌跡が残っている間はCOMBO。
+10 COMBOごとにボーナスを獲得し、スコア倍率が上がる。
+</pre>
+
+      <div class="howto-footer">Click or Tap to close</div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ===== Mobile platform detection =====
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const FORCE_MOBILE_UI =
+    /[?&]mtest=1\b/.test(location.search) ||
+    location.hash.includes("mtest");  // 強制mobileUI mtest=1
+  const isMobilePlatform = FORCE_MOBILE_UI || isIOS || isAndroid;
+  if (isMobilePlatform) document.documentElement.classList.add("is-mobile-platform");
+
+  // ===== Canvas & DPR scaling =====
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d", { alpha:false });
+
+  function syncPixelRatio(){
+    // Keep the backing canvas at 800x800 on every device.
+    const DPR = 1;
+    const W = 800, H = 800;
+    canvas.width  = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.imageSmoothingEnabled = false;
+  }
+  syncPixelRatio();
+  window.addEventListener("resize", syncPixelRatio);
+
+  // ===== Actions (input collection) =====
+  const Actions = {
+    moveLeft:false, moveRight:false,
+    shiftLeft:false, shiftRight:false,
+    actionLeft:false, actionDown:false, actionRight:false,
+    pause:false, startRestart:false, controllerStart:false, backToTitle:false,
+    soundToggle:false, howToPlay:false
+  };
+  function consumeAction(flag){
+    if (Actions[flag]) { Actions[flag] = false; return true; }
+    return false;
+  }
+
+  // ===== Keyboard =====
+  window.addEventListener("keydown", (e)=>{
+    if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+      Actions[e.code === "ShiftLeft" ? "shiftLeft" : "shiftRight"] = true;
+      e.preventDefault();
+      return;
+    }
+    const k = e.key;
+    switch (k) {
+      case "a": case "A": Actions.moveLeft = true; e.preventDefault(); break;
+      case "d": case "D": Actions.moveRight = true; e.preventDefault(); break;
+      case "ArrowLeft": Actions.actionLeft = true; e.preventDefault(); break;
+      case "ArrowDown": Actions.actionDown = true; e.preventDefault(); break;
+      case "ArrowRight": Actions.actionRight = true; e.preventDefault(); break;
+      case " ": Actions.pause = true; e.preventDefault(); break;
+      case "Enter": requestStartRestart(); e.preventDefault(); break;
+      case "Escape": Actions.backToTitle = true; e.preventDefault(); break;
+      case "m": case "M": Actions.soundToggle = true; e.preventDefault(); break;
+      case "h": case "H": Actions.howToPlay = true; e.preventDefault(); break;
+    }
+  }, { passive:false });
+
+  window.addEventListener("keyup", (e)=>{
+    if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+      Actions[e.code === "ShiftLeft" ? "shiftLeft" : "shiftRight"] = false;
+      return;
+    }
+    const k = e.key;
+    switch (k) {
+      case "a": case "A": Actions.moveLeft = false; break;
+      case "d": case "D": Actions.moveRight = false; break;
+      case "ArrowLeft": Actions.actionLeft = false; break;
+      case "ArrowDown": Actions.actionDown = false; break;
+      case "ArrowRight": Actions.actionRight = false; break;
+    }
+  });
+
+  // Tap canvas: start/restart (optional)
+  canvas.addEventListener("pointerdown", (e)=>{
+    requestStartRestart();
+    e.preventDefault();
+  }, { passive:false });
+
+  // ===== Gamepad =====
+  const GamepadInput = {
+    leftFlipper: false,
+    rightFlipper: false,
+    prevButtons: [],
+    getFirstPad(){
+      const list = navigator.getGamepads ? navigator.getGamepads() : [];
+      if (!list) return null;
+      for (let i = 0; i < list.length; i++) {
+        const gp = list[i];
+        if (gp && gp.connected) return gp;
+      }
+      return null;
+    },
+    poll(){
+      const gp = this.getFirstPad();
+      if (!gp) {
+        this.prevButtons = [];
+        this.leftFlipper = this.rightFlipper = false;
+        return;
+      }
+
+      const btn = (i) => !!gp.buttons[i]?.pressed;
+      const justPressed = (i) => btn(i) && !this.prevButtons[i];
+
+      this.leftFlipper = [14, 13, 4, 6].some(btn); // D-pad left/down, LB, LT
+      this.rightFlipper = [0, 1, 5, 7].some(btn); // A, B, RB, RT
+
+      if (justPressed(9)) Actions.controllerStart = true;
+      if (justPressed(8)) Actions.howToPlay = true; // Back
+      if (justPressed(3)) Actions.soundToggle = true; // Y
+
+      this.prevButtons = gp.buttons.map(b => b && b.pressed);
+    }
+  };
+
+  // ===== Mobile pad bindings =====
+  const btnPadMoveL  = document.getElementById("btnPadMoveL");
+  const btnPadMoveR  = document.getElementById("btnPadMoveR");
+
+  function bindPadHold(button, onPress, onRelease){
+    if (!button) return;
+    let active = false;
+    const start = (e) => { e.preventDefault(); active = true; onPress(); };
+    const end   = (e) => { if(!active) return; active = false; onRelease(); };
+    button.addEventListener("pointerdown", start, { passive:false });
+    button.addEventListener("pointerup", end);
+    button.addEventListener("pointerleave", end);
+    button.addEventListener("pointercancel", end);
+  }
+
+  if (isMobilePlatform) {
+    bindPadHold(btnPadMoveL,  () => { Actions.moveLeft  = true; }, () => { Actions.moveLeft  = false; });
+    bindPadHold(btnPadMoveR,  () => { Actions.moveRight = true; }, () => { Actions.moveRight = false; });
+  }
+
+  // ===== Top buttons =====
+  const btnTitle = document.getElementById("btnTitle");
+  const btnHowto = document.getElementById("btnHowto");
+  const btnMute  = document.getElementById("btnMute");
+
+  let state = "title"; // title / running / paused
+  let paused = false;
+
+  const RSG_HOME_URL = "https://ryosatoanime.github.io/RSG/index.html";
+
+  function updateTitleButtonLabel(){
+    if (!btnTitle) return;
+    const isRsgMode = isMobilePlatform && state === "title";
+    btnTitle.textContent = isRsgMode ? "RSG" : "Title";
+    btnTitle.dataset.mode = isRsgMode ? "rsg" : "title";
+    btnTitle.setAttribute("aria-label", isRsgMode ? "RSG Home" : "Title");
+  }
+  updateTitleButtonLabel();
+
+  if (isMobilePlatform && btnTitle) {
+    btnTitle._suppressNextClick = false;
+
+    btnTitle.addEventListener("click", (e)=>{
+      if (btnTitle._suppressNextClick){
+        btnTitle._suppressNextClick = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (btnTitle.dataset.mode !== "rsg") return;
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.href = RSG_HOME_URL;
+    }, { passive:false });
+
+    btnTitle.addEventListener("pointerdown", (e)=>{
+      if (btnTitle.dataset.mode === "rsg"){
+        // Let the following real click handle navigation. This is more reliable on iOS Safari.
+        return;
+      }
+      btnTitle._suppressNextClick = true;
+      e.preventDefault();
+      e.stopPropagation();
+      Actions.backToTitle = true;
+    }, { passive:false });
+  }
+  if (isMobilePlatform && btnHowto) {
+    btnHowto.addEventListener("pointerdown", (e)=>{ e.preventDefault(); Actions.howToPlay = true; }, { passive:false });
+  }
+  if (btnMute) {
+    btnMute.addEventListener("pointerdown", (e)=>{ e.preventDefault(); Actions.soundToggle = true; }, { passive:false });
+  }
+
+  // ===== HowTo overlay (optional) =====
+  const howtoEl = document.getElementById("howtoOverlay");
+  const howtoPanel = howtoEl ? howtoEl.querySelector(".howto-panel") : null;
+  let howtoVisible = false;
+  let howtoResumeOnClose = false;
+
+  function positionHowtoToCanvasCenter(){
+    if (!howtoPanel) return;
+    const r = canvas.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top  + r.height / 2;
+    Object.assign(howtoPanel.style, {
+      position: "fixed",
+      left: `${Math.round(cx)}px`,
+      top:  `${Math.round(cy)}px`,
+      transform: "translate(-50%, -50%)"
+    });
+  }
+
+  function showHowto(){
+    if (!howtoEl || !howtoPanel) return;
+    if (howtoVisible) return;
+    howtoVisible = true;
+    howtoEl.style.display = "block";
+    howtoEl.setAttribute("aria-hidden","false");
+    positionHowtoToCanvasCenter();
+
+    if (state === "running" && !paused){
+      paused = true;
+      Game.onPauseChange(true);
+      howtoResumeOnClose = true;
+    } else {
+      howtoResumeOnClose = false;
+    }
+  }
+  function hideHowto(){
+    if (!howtoEl) return;
+    if (!howtoVisible) return;
+    howtoVisible = false;
+    howtoEl.style.display = "none";
+    howtoEl.setAttribute("aria-hidden","true");
+
+    if (howtoResumeOnClose && state === "running"){
+      paused = false;
+      Game.onPauseChange(false);
+    }
+  }
+
+  if (howtoEl){
+    howtoEl.addEventListener("pointerdown", (e)=>{
+      if (!howtoVisible) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      hideHowto();
+    }, { capture:true });
+  }
+  window.addEventListener("resize", ()=>{ if(howtoVisible) positionHowtoToCanvasCenter(); });
+  window.addEventListener("scroll",  ()=>{ if(howtoVisible) positionHowtoToCanvasCenter(); }, { passive:true });
+
+  // ===== Audio: 3-state toggle =====
+  let audioMode = 0; // 0=all, 1=bgm off, 2=mute all
+  let SFXmute = false;
+  let BGMmute = false;
+
+  function applyAudioModeClass(mode){
+    const root = document.documentElement;
+    root.classList.remove("audio-all","audio-bgmoff","audio-mute");
+    if (mode === 0) root.classList.add("audio-all");
+    else if (mode === 1) root.classList.add("audio-bgmoff");
+    else root.classList.add("audio-mute");
+  }
+  applyAudioModeClass(audioMode);
+
+  const ctrlNote    = document.getElementById("ctrlNote");
+  const ctrlSpeaker = document.getElementById("ctrlSpeaker");
+  const ctrlSlash   = document.getElementById("ctrlSlash");
+
+  function updateAudioIcons(){
+    if (!ctrlNote || !ctrlSpeaker || !ctrlSlash) return;
+    ctrlNote.style.display = "none";
+    ctrlSpeaker.style.display = "none";
+    ctrlSlash.style.display = "none";
+    if (audioMode === 0){
+      ctrlSpeaker.style.display = "block";
+    } else if (audioMode === 1){
+      ctrlNote.style.display = "block";
+      ctrlSlash.style.display = "block";
+    } else {
+      ctrlSpeaker.style.display = "block";
+      ctrlSlash.style.display = "block";
+    }
+    if (btnMute){
+      btnMute.classList.toggle("muted", audioMode === 2);
+    }
+  }
+
+  let audioCtx = null;
+  let masterGain = null;
+  let sfxGain = null;
+
+  function ensureAudio(){
+    if (!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.8;
+      masterGain.connect(audioCtx.destination);
+
+      sfxGain = audioCtx.createGain();
+      sfxGain.gain.value = SFXmute ? 0 : 1;
+      sfxGain.connect(masterGain);
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(error => console.warn("Audio resume failed", error));
+  }
+
+  function applyAudioMode(){
+    if (audioMode === 0){ SFXmute = false; BGMmute = false; }
+    else if (audioMode === 1){ SFXmute = false; BGMmute = true; }
+    else { SFXmute = true; BGMmute = true; }
+    if (sfxGain) sfxGain.gain.value = SFXmute ? 0 : 1;
+    updateAudioIcons();
+    // NOTE: BGMの実体はゲーム側に任せる（App.onBGMRefresh で接続）
+    if (typeof App !== "undefined" && App && typeof App.onBGMRefresh === "function"){
+      App.onBGMRefresh();
+    }
+  }
+
+  updateAudioIcons();
+  // ここでは applyAudioMode() を呼ばない
+
+  function blip(freq=660, ms=60, vol=0.12){
+    if (SFXmute) return;
+    ensureAudio();
+    const t0 = audioCtx.currentTime + 0.01;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + ms/1000);
+    o.connect(g).connect(masterGain);
+    o.start(t0);
+    o.stop(t0 + ms/1000 + 0.02);
+  }
+
+  // 初回操作でAudioContext unlock（ゲーム側の音もここで動き出せる）
+  ["click","keydown","touchstart","pointerdown"].forEach(ev =>
+    window.addEventListener(ev, ()=>{ ensureAudio(); }, { once:true, passive:true })
+  );
+
+  // ===== App hooks (ここが差し替えポイント) =====
+  const Game = {
+    reset(){},
+    onPauseChange(_paused){},
+    onBackToTitle(){},
+    startRestart(){ return false; },
+    update(_dt){},
+    draw(){
+      // まっさら：黒塗りだけ
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0,0,800,800);
+    },
+    drawTitle(){
+      // タイトルも真っ黒（必要ならここを差し替え）
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0,0,800,800);
+    },
+    drawPaused(){
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "900 42px Arial, Helvetica, sans-serif";
+      ctx.fillStyle = "#fff";
+      ctx.fillText("PAUSED", 400, 400);
+      ctx.restore();
+    }
+  };
+
+  const App = {
+    // state
+    get state(){ return state; },
+    get paused(){ return paused; },
+    get howtoVisible(){ return howtoVisible; },
+    get audioMode(){ return audioMode; },
+    get SFXmute(){ return SFXmute; },
+    get BGMmute(){ return BGMmute; },
+    get audioContext(){ return audioCtx; },
+    get sfxOutput(){ return sfxGain; },
+
+    // helpers
+    consumeAction,
+    ensureAudio,
+    blip,
+
+    // game injection
+    setGame(gameObj){
+      if (!gameObj) return;
+      // shallow override (missing methods stay as defaults)
+      for (const k of ["reset","startRestart","onPauseChange","onBackToTitle","update","draw","drawTitle","drawPaused"]){
+        if (typeof gameObj[k] === "function") Game[k] = gameObj[k].bind(gameObj);
+      }
+    },
+
+    // BGM refresh hook (ゲーム側で上書きOK)
+    onBGMRefresh(){ /* no-op */ },
+
+    // shell control
+    backToTitle(){
+      Game.onBackToTitle();
+      state = "title";
+      paused = false;
+      updateTitleButtonLabel();
+    },
+    startFromTitle(){
+      try{ Game.reset(); }catch(_){}
+      resetFrameClock();
+      state = "running";
+      paused = false;
+      updateTitleButtonLabel();
+    },
+    enterPause(){
+      if (state === "running"){
+        state = "paused";
+        paused = true;
+        Game.onPauseChange(true);
+        updateTitleButtonLabel();
+      }
+    },
+    exitPause(){
+      if (state === "paused"){
+        state = "running";
+        paused = false;
+        Game.onPauseChange(false);
+        updateTitleButtonLabel();
+      }
+    }
+  };
+
+  // Keyboard/tap starts call play() inside the user gesture for autoplay policies.
+  function requestStartRestart(){
+    if (howtoVisible) return false;
+    if (state === "title") App.startFromTitle();
+    else if (Game.startRestart()){
+      resetFrameClock();
+      state = "running";
+      paused = false;
+      updateTitleButtonLabel();
+    } else return false;
+    return true;
+  }
+
+  applyAudioMode();
+
+  // ===== Main loop =====
+  const FPS_TARGET = 60;
+  const FRAME_MS = 1000 / FPS_TARGET;
+  let last = performance.now();
+  let acc = 0;
+
+  function resetFrameClock(){
+    // Start the new round without replaying time accumulated before reset.
+    last = performance.now();
+    acc = 0;
+  }
+
+  // Development-only RAF counter; does not affect the fixed update clock.
+  const showFrameRate = new URLSearchParams(location.search).get("debug") === "1";
+  let frameRateLabel = null;
+  let frameRateStart = null;
+  let frameRateLast = null;
+  let frameRateCount = 0;
+  if (showFrameRate) {
+    frameRateLabel = document.createElement("div");
+    frameRateLabel.style.cssText = "position:fixed;top:4px;right:4px;z-index:10000;padding:4px 6px;background:#000c;color:#9f9;font:12px monospace;pointer-events:none";
+    frameRateLabel.textContent = "FPS --";
+    document.body.appendChild(frameRateLabel);
+  }
+
+  function updateFrameRate(now) {
+    if (!frameRateLabel) return;
+    if (document.hidden || frameRateLast === null || now - frameRateLast > 1000) {
+      frameRateStart = now;
+      frameRateLast = now;
+      frameRateCount = 0;
+      frameRateLabel.textContent = "FPS --";
+      return;
+    }
+    frameRateLast = now;
+    frameRateCount += 1;
+    const elapsed = now - frameRateStart;
+    if (elapsed >= 1000) {
+      frameRateLabel.textContent = `FPS ${(frameRateCount * 1000 / elapsed).toFixed(1)} / ${(elapsed / frameRateCount).toFixed(1)} ms`;
+      frameRateStart = now;
+      frameRateCount = 0;
+    }
+  }
+
+  function loop(now){
+    updateFrameRate(now);
+    const d = now - last;
+    last = now;
+    acc += d;
+
+    GamepadInput.poll();
+
+    if (consumeAction("soundToggle")){
+      audioMode = (audioMode + 1) % 3;
+      applyAudioModeClass(audioMode);
+      applyAudioMode();
+      blip(520, 40, 0.10);
+    }
+
+    if (consumeAction("howToPlay")){
+      if (howtoVisible) hideHowto();
+      else showHowto();
+    }
+
+    if (howtoVisible){
+      // overlay中は誤爆を止める
+      Actions.pause = false;
+      Actions.startRestart = false;
+      Actions.controllerStart = false;
+      Actions.backToTitle = false;
+    }
+
+    if (consumeAction("backToTitle")){
+      App.backToTitle();
+    }
+
+    if (consumeAction("controllerStart")){
+      if (state === "paused") App.exitPause();
+      else if (!requestStartRestart()) App.enterPause();
+    }
+
+    if (consumeAction("pause")){
+      if (state === "running" && !paused) App.enterPause();
+      else if (state === "paused" && paused) App.exitPause();
+    }
+
+    if (consumeAction("startRestart")) requestStartRestart();
+
+    while (acc >= FRAME_MS){
+      const dt = FRAME_MS / 1000;
+      if (state === "running" && !paused && !howtoVisible){
+        try{ Game.update(dt); }catch(e){ console.error(e); }
+      }
+      acc -= FRAME_MS;
+    }
+
+    try{
+      if (state === "title") Game.drawTitle();
+      else {
+        Game.draw();
+        if (state === "paused" && paused) Game.drawPaused();
+      }
+    }catch(e){
+      console.error(e);
+      // 最後の砦：真っ黒
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0,0,800,800);
+    }
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame((t)=>{ last=t; requestAnimationFrame(loop); });
+
+  // ===== Export =====
+  window.RSGShell = { canvas, ctx, Actions, GamepadInput, App };
+})();
+</script>
+<script src="./game.js"></script>
+</body>
+</html>
